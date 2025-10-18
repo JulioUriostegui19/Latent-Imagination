@@ -46,29 +46,36 @@ def build_callbacks(cfg):
 
 def train(cfg: dict, model: pl.LightningModule, datamodule: pl.LightningDataModule):
     """Run the training loop for the provided Lightning module and datamodule."""
+    # Create TensorBoard logger for real-time training visualization
     tb_logger = TensorBoardLogger(
         save_dir=cfg.get("save_dir", "./logs"), name="tb_logs"
     )
+    # Create CSV logger for persistent training metrics storage
     csv_logger = CSVLogger(save_dir=cfg.get("save_dir", "./logs"), name="csv_logs")
 
+    # Build training callbacks (checkpointing, early stopping, etc.)
     callbacks = build_callbacks(cfg)
 
+    # Configure PyTorch Lightning trainer with all necessary settings
     trainer_kwargs = {
-        "max_epochs": cfg.get("epochs", 50),
-        # Use both TensorBoard and CSV loggers for flexibility.
+        "max_epochs": cfg.get("epochs", 50),  # Maximum number of training epochs
+        # Use both TensorBoard and CSV loggers for flexibility and redundancy.
         "logger": [tb_logger, csv_logger],
-        "callbacks": callbacks,
+        "callbacks": callbacks,  # Training callbacks for checkpointing and monitoring
         # Select GPU automatically if available and allowed in config.
         "gpus": 1 if torch.cuda.is_available() and cfg.get("use_gpu", True) else 0,
-        "precision": 16 if cfg.get("use_amp", False) else 32,
-        "gradient_clip_val": cfg.get("grad_clip", 0.0),
-        "deterministic": cfg.get("deterministic", False),
-        "log_every_n_steps": cfg.get("log_every_n_steps", 50),
+        "precision": 16 if cfg.get("use_amp", False) else 32,  # Mixed precision training if enabled
+        "gradient_clip_val": cfg.get("grad_clip", 0.0),  # Gradient clipping to prevent exploding gradients
+        "deterministic": cfg.get("deterministic", False),  # Deterministic training for reproducibility
+        "log_every_n_steps": cfg.get("log_every_n_steps", 50),  # Logging frequency
     }
+    # Create PyTorch Lightning trainer with configured settings
     trainer = pl.Trainer(**trainer_kwargs)
 
+    # Start the actual training process
     trainer.fit(model, datamodule=datamodule)
 
+    # Print path to best checkpoint after training completes
     print(
         "Best checkpoint path:",
         (
@@ -77,4 +84,5 @@ def train(cfg: dict, model: pl.LightningModule, datamodule: pl.LightningDataModu
             else "N/A"
         ),
     )
+    # Return trainer object for potential further use (analysis, testing, etc.)
     return trainer
