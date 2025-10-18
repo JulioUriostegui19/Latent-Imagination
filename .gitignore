@@ -1,0 +1,42 @@
+# Custom project exclusions
+description.dm
+Clausde.md
+.claude
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environments
+.env
+.venv/
+env/
+venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Logs and temp files
+*.log
+*.tmp
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Model and data artifacts
+*.pth
+*.pt
+*.h5
+*.ckpt
+*.npz
+*.npy
+
+# VSCode / PyCharm / other IDEs
+.vscode/
+.idea/
+
+# Results or generated images
+outputs/
+results/

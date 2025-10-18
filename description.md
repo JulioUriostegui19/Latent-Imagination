@@ -1,0 +1,3 @@
+- This is the implementation for VAE in neuroscience.
+- The implementation is modular. 
+- easy setup
