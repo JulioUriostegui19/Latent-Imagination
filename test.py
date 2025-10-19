@@ -100,6 +100,13 @@ def _load_model_spec(name: str, checkpoint_path: str, device: torch.device) -> M
     elif isinstance(ckpt, dict) and all(isinstance(v, torch.Tensor) for v in ckpt.values()):
         state_dict = ckpt
         hparams = {}
+    elif isinstance(ckpt, dict) and {"encoder", "decoder"} <= ckpt.keys():
+        # Legacy checkpoint format (pre-Lightning) used only for testing legacy models.
+        state_dict = {
+            f"encoder.{k}": v for k, v in ckpt["encoder"].items()
+        }
+        state_dict.update({f"decoder.{k}": v for k, v in ckpt["decoder"].items()})
+        hparams = ckpt.get("hyper_parameters", {})
     else:
         raise KeyError(
             "Checkpoint must either contain a 'state_dict' entry (Lightning) "
