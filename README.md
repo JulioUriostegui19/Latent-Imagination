@@ -1,4 +1,4 @@
-# 🧠✨ Cognitive VAE: Modeling Imagination & Perception
+# 🧠✨ Latent-Imagination: A Cognitive Modeling Of Imagery & Perception
 
 > *"How does the brain imagine what it has never seen?"* - This is the question that keeps me up at night (and apparently fuels my thesis writing at 3 AM).
 
@@ -136,9 +136,8 @@ Hi! I'm Julio, a master's student diving deep into the intersection of **deep le
 
 ## 📬 Get in Touch
 
-- 📧 [julio.uriostegui@example.com](mailto:julio.uriostegui@example.com)
-- 🐦 [@juliouriostegui](https://twitter.com/juliouriostegui)
-- 🔬 [Google Scholar](https://scholar.google.com/citations?user=YOUR_ID)
+
+- 🔬 [Website](https://juliouriostegui.com)
 
 *"The mind is not a vessel to be filled, but a fire to be kindled"* - Plutarch (probably talking about neural networks)
 
