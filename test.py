@@ -1,17 +1,24 @@
 """Evaluation script for generating analytics on trained VAE checkpoints."""
 
-import math
-from pathlib import Path
-from typing import Dict, Iterable, List, Mapping, Sequence, Tuple
+import math  # Mathematical operations for dimension calculations
+from pathlib import Path  # Path manipulation utilities
+from typing import Dict, Iterable, List, Mapping, Sequence, Tuple  # Type hints for function signatures
 
-import hydra
-import torch
-from hydra.utils import to_absolute_path
-from omegaconf import DictConfig, OmegaConf
+import hydra  # Hydra framework for configuration management
+import torch  # PyTorch for deep learning operations
+from hydra.utils import to_absolute_path  # Utility to convert relative paths to absolute
+from omegaconf import DictConfig, OmegaConf  # OmegaConf for configuration handling
 
-from analytics import ModelSpec, run_iterative_inference_test, run_ood_test
-from models import BaseVAE, IterativeVAE, ConvDecoder, ConvEncoder, MLPDecoder, MLPEncoder
-from utils.dataloaders import GenericImageDataModule
+from analytics import ModelSpec, run_iterative_inference_test, run_ood_test  # Analytics utilities
+from models import (  # Import all model components
+    BaseVAE,
+    IterativeVAE,
+    ConvDecoder,
+    ConvEncoder,
+    MLPDecoder,
+    MLPEncoder,
+)
+from utils.dataloaders import GenericImageDataModule  # Data loading utilities
 
 
 def _parse_model_specs(specs: Sequence[str]) -> List[Tuple[str, str]]:
@@ -41,9 +48,9 @@ def _build_modules(
     state_dict: Mapping[str, torch.Tensor],
 ) -> Tuple[torch.nn.Module, torch.nn.Module]:
     """Rebuild encoder/decoder modules that match the checkpoint layout."""
-    input_shape = tuple(hparams.get("input_shape", (1, 28, 28)))
-    z_dim = int(hparams.get("z_dim", 15))
-    input_dim = math.prod(input_shape)
+    input_shape = tuple(hparams.get("input_shape", (1, 28, 28)))  # Default MNIST shape
+    z_dim = int(hparams.get("z_dim", 15))  # Default latent dimension
+    input_dim = math.prod(input_shape)  # Calculate flattened input size
 
     if architecture == "mlp":
         h1 = state_dict["encoder.fc1.weight"].shape[0]
@@ -66,13 +73,17 @@ def _build_modules(
         )
     else:
         conv_keys = sorted(
-            key for key in state_dict if key.startswith("encoder.conv") and key.endswith(".weight")
+            key
+            for key in state_dict
+            if key.startswith("encoder.conv") and key.endswith(".weight")
         )
         hidden_dims = tuple(int(state_dict[key].shape[0]) for key in conv_keys)
         if not hidden_dims:
             hidden_dims = (32, 64)
         decoder_keys = sorted(
-            key for key in state_dict if key.startswith("decoder.net") and key.endswith(".weight")
+            key
+            for key in state_dict
+            if key.startswith("decoder.net") and key.endswith(".weight")
         )
         if decoder_keys:
             init_channels = int(state_dict[decoder_keys[0]].shape[0])
@@ -80,14 +91,20 @@ def _build_modules(
             dec_hidden = tuple([init_channels, *extra])
         else:
             dec_hidden = (64, 32)
-        encoder = ConvEncoder(input_shape=input_shape, hidden_dims=hidden_dims, z_dim=z_dim)
-        decoder = ConvDecoder(output_shape=input_shape, hidden_dims=dec_hidden, z_dim=z_dim)
+        encoder = ConvEncoder(
+            input_shape=input_shape, hidden_dims=hidden_dims, z_dim=z_dim
+        )
+        decoder = ConvDecoder(
+            output_shape=input_shape, hidden_dims=dec_hidden, z_dim=z_dim
+        )
     return encoder, decoder
 
 
-def _load_model_spec(name: str, checkpoint_path: str, device: torch.device) -> ModelSpec:
+def _load_model_spec(
+    name: str, checkpoint_path: str, device: torch.device
+) -> ModelSpec:
     """Materialise a ModelSpec from a Lightning checkpoint."""
-    abs_path = Path(to_absolute_path(checkpoint_path))
+    abs_path = Path(to_absolute_path(checkpoint_path))  # Convert to absolute path
     if not abs_path.exists():
         raise FileNotFoundError(f"Checkpoint not found: {abs_path}")
 
@@ -97,14 +114,14 @@ def _load_model_spec(name: str, checkpoint_path: str, device: torch.device) -> M
     if isinstance(ckpt, dict) and "state_dict" in ckpt:
         state_dict: Dict[str, torch.Tensor] = ckpt["state_dict"]
         hparams: Mapping[str, object] = ckpt.get("hyper_parameters", {})
-    elif isinstance(ckpt, dict) and all(isinstance(v, torch.Tensor) for v in ckpt.values()):
+    elif isinstance(ckpt, dict) and all(
+        isinstance(v, torch.Tensor) for v in ckpt.values()
+    ):
         state_dict = ckpt
         hparams = {}
     elif isinstance(ckpt, dict) and {"encoder", "decoder"} <= ckpt.keys():
         # Legacy checkpoint format (pre-Lightning) used only for testing legacy models.
-        state_dict = {
-            f"encoder.{k}": v for k, v in ckpt["encoder"].items()
-        }
+        state_dict = {f"encoder.{k}": v for k, v in ckpt["encoder"].items()}
         state_dict.update({f"decoder.{k}": v for k, v in ckpt["decoder"].items()})
         hparams = ckpt.get("hyper_parameters", {})
     else:
@@ -116,13 +133,13 @@ def _load_model_spec(name: str, checkpoint_path: str, device: torch.device) -> M
     architecture = _infer_architecture(state_dict)
     encoder, decoder = _build_modules(architecture, hparams, state_dict)
 
-    beta = float(hparams.get("beta", 1.0))
+    beta = float(hparams.get("beta", 1.0))  # KL divergence weight
     lr = float(hparams.get("lr", 1e-3))
     weight_decay = float(hparams.get("weight_decay", 0.0))
     input_shape = tuple(hparams.get("input_shape", (1, 28, 28)))
     z_dim = int(hparams.get("z_dim", 15))
 
-    if "lr_inf" in hparams:
+    if "lr_inf" in hparams:  # Check if this is an iterative VAE
         module = IterativeVAE(
             encoder,
             decoder,
@@ -147,8 +164,8 @@ def _load_model_spec(name: str, checkpoint_path: str, device: torch.device) -> M
         )
         lr_inf = None
 
-    module.load_state_dict(state_dict)
-    module.eval()
+    module.load_state_dict(state_dict)  # Load trained weights
+    module.eval()  # Set to evaluation mode
     return ModelSpec(name=name, module=module, beta=beta, lr=lr, lr_inf=lr_inf)
 
 
@@ -162,23 +179,27 @@ def _prepare_dataloader(cfg: Mapping[str, object]) -> Iterable:
     return datamodule.val_dataloader()
 
 
-@hydra.main(version_base=None, config_path="configs", config_name="test")
+@hydra.main(version_base=None, config_path="configs", config_name="test")  # Hydra decorator for test configuration
 def main(cfg: DictConfig):
     """Hydra entrypoint for running analytics suites against checkpoints."""
     if not cfg.models:
-        raise ValueError("Please provide at least one model via `models=[path_or_name:path]`.")
+        raise ValueError(
+            "Please provide at least one model via `models=[path_or_name:path]`."
+        )
     if not cfg.tests:
-        raise ValueError("Please provide at least one test in `tests=[iterative,ood,...]`.")
+        raise ValueError(
+            "Please provide at least one test in `tests=[iterative,ood,...]`."
+        )
 
     model_specs_input = _parse_model_specs(cfg.models)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")  # Use GPU if available
 
     models = [
         _load_model_spec(name, path, device=torch.device("cpu"))
         for name, path in model_specs_input
     ]
 
-    val_loader = _prepare_dataloader(cfg.dataset)
+    val_loader = _prepare_dataloader(cfg.dataset)  # Prepare validation data loader
 
     output_root = Path(to_absolute_path(cfg.output_dir))
     output_root.mkdir(parents=True, exist_ok=True)
@@ -215,5 +236,5 @@ def main(cfg: DictConfig):
     print(f"[✓] Evaluation complete. Summary written to {summary_path}")
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == "__main__":  # Standard Python entry point
+    main()  # Execute main function

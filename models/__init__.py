@@ -3,7 +3,8 @@
 # This allows importing all models with: from models import BaseVAE, IterativeVAE, etc.
 
 # Import encoder/decoder architectures from VAE module
-from .vae.architectures import MLPEncoder, MLPDecoder, ConvEncoder, ConvDecoder
+from .vae.mlp_vae import MLPEncoder, MLPDecoder
+from .vae.cnn_vae import ConvEncoder, ConvDecoder
 # Import standard VAE implementation
 from .vae.base import BaseVAE
 # Import iterative/semi-amortized VAE implementation

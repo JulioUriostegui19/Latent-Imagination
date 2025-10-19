@@ -3,7 +3,8 @@
 # Contains both architectural components (encoders/decoders) and training logic
 
 # Import encoder/decoder architectures
-from .architectures import MLPEncoder, MLPDecoder, ConvEncoder, ConvDecoder
+from .mlp_vae import MLPEncoder, MLPDecoder
+from .cnn_vae import ConvEncoder, ConvDecoder
 # Import base VAE Lightning module
 from .base import BaseVAE
 
