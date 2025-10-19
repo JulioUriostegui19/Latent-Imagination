@@ -4,8 +4,8 @@
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-orange.svg)](https://pytorch.org/)
-[![Research](https://img.shields.io/badge/Status-Active%20Research-green.svg)](https://github.com/juliouriostegui/cognitive-vae)
-[![Thesis](https://img.shields.io/badge/Master%20Thesis-In%20Progress-purple.svg)]()
+[![Research](https://img.shields.io/badge/Status-Active%20Research-green.svg)](https://github.com/juliouriostegui/Latent-Imagination)
+[![Thesis](https://img.shields.io/badge/Master%20Thesis-In%20Progress-purple.svg)](https://github.com/juliouriostegui/Latent-Imagination)
 
 ## 🎯 What This Is About
 
@@ -33,9 +33,11 @@ tensorboard --logdir ./runs
 ## 🧬 The Science Behind the Magic
 
 ### The Big Idea
+
 Traditional VAEs are cool, but they miss something fundamental about how humans think. We don't just passively encode/decode information - we actively **imagine**, **predict**, and **refine** our mental representations through iterative processes.
 
 ### What Makes This Special
+
 - **Standard VAE**: Your classic encode → decode pipeline
 - **Iterative VAE**: Adds a "mental refinement" step using stochastic variational inference
 - **Cognitive Inspiration**: Models don't just reconstruct - they "imagine" missing details
@@ -111,6 +113,7 @@ If you use this work in your research (or just think it's cool), here's how to c
 ## 🤝 Contributing
 
 This is my thesis work, but I'm always open to:
+
 - 🐛 Bug reports (please!)
 - 💡 Suggestions for experiments
 - 🧠 Cognitive science insights
@@ -118,10 +121,10 @@ This is my thesis work, but I'm always open to:
 ## 🎓 About the Researcher
 
 Hi! I'm Julio, a master's student diving deep into the intersection of **deep learning** and **cognitive science**. When I'm not training neural networks, I'm probably:
+
 - Playing Catan
 - Explaining to my family that no, I'm not "just playing with computers"
 - Wondering if my brain is just a really complex VAE
-
 
 **Current status**: *"It's not procrastination if it's literature review"* 📖
 
@@ -133,7 +136,6 @@ Hi! I'm Julio, a master's student diving deep into the intersection of **deep le
 ---
 
 ## 📬 Get in Touch
-
 
 - 🔬 [Website](https://juliouriostegui.com)
 
