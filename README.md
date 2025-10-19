@@ -9,7 +9,7 @@
 
 ## 🎯 What This Is About
 
-Welcome to my digital laboratory where **Variational Autoencoders** meet **cognitive neuroscience**! This repository contains my master thesis implementation exploring how we can model the fascinating interplay between imagination and perception using deep generative models.
+Welcome to my digital laboratory! This repository contains my master thesis implementation exploring how we can model the fascinating interplay between imagination and perception using deep generative models.
 
 Think of it as teaching computers to "imagine" like humans do - filling in missing pieces, generating new combinations of familiar concepts, and navigating the blurry boundary between what's real and what's mentally constructed.
 
@@ -100,11 +100,11 @@ python train.py --config configs/experiment2.yaml
 If you use this work in your research (or just think it's cool), here's how to cite it:
 
 ```bibtex
-@misc{cognitive-vae-2024,
-  title={Cognitive Modeling of Imagination and Perception using Variational Autoencoders},
+@misc{Latent-Imagination-2025,
+  title={Latent-Imagination: A Cognitive Modeling Of Imagery & Perception},
   author={Julio Uriostegui},
-  year={2024},
-  howpublished={\url{https://github.com/juliouriostegui/cognitive-vae}}
+  year={2025},
+  howpublished={\url{https://github.com/JulioUriostegui19/Latent-Imagination}}
 }
 ```
 
@@ -114,22 +114,20 @@ This is my thesis work, but I'm always open to:
 - 🐛 Bug reports (please!)
 - 💡 Suggestions for experiments
 - 🧠 Cognitive science insights
-- ☕ Coffee recommendations for late-night coding sessions
 
 ## 🎓 About the Researcher
 
 Hi! I'm Julio, a master's student diving deep into the intersection of **deep learning** and **cognitive science**. When I'm not training neural networks, I'm probably:
-- Reading papers about predictive processing
-- Wondering if my brain is just a really complex VAE
+- Playing Catan
 - Explaining to my family that no, I'm not "just playing with computers"
+- Wondering if my brain is just a really complex VAE
+
 
 **Current status**: *"It's not procrastination if it's literature review"* 📖
 
 ## 🙏 Acknowledgments
 
 - My advisor (for keeping me scientifically honest)
-- PyTorch Lightning (for saving me from boilerplate hell)
-- Coffee (for obvious reasons)
 - The open-source community (for making research accessible)
 
 ---
@@ -139,7 +137,7 @@ Hi! I'm Julio, a master's student diving deep into the intersection of **deep le
 
 - 🔬 [Website](https://juliouriostegui.com)
 
-*"The mind is not a vessel to be filled, but a fire to be kindled"* - Plutarch (probably talking about neural networks)
+*"Our future is the result of collaboration."*
 
 ---
 
