@@ -1,0 +1,7 @@
+type: vae_conv
+z_dim: 32
+lr: 1e-3
+beta: 1.0
+weight_decay: 0.0
+conv_hidden: [32, 64]
+deconv_hidden: [64, 32]

@@ -1,0 +1,22 @@
+iterative:
+  n_examples: 128
+  n_steps: 50
+  lr_factor: 0.1
+  save_latent_traj: true
+  latent_num_samples: 4
+  latent_num_steps: 5
+
+ood:
+  n_examples: 64
+  n_steps: 30
+  lr_factor: 0.1
+  timeline_steps: 6
+  corruptions:
+    identity: {}
+    gaussian_blur:
+      kernel_size: 5
+      sigma: 2.0
+    white_noise:
+      sigma: 0.6
+    salt_pepper:
+      prob: 0.4

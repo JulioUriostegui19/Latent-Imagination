@@ -1,28 +1,37 @@
 """Base amortized VAE LightningModule with standard ELBO training."""
+
 # Standard library imports for tensor operations and neural network building blocks
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
+
 # Import custom loss functions for VAE training from utils module
 from utils.losses import elbo_per_sample, gaussian_kl, reconstruction_bce_logits
 
 
 class BaseVAE(pl.LightningModule):
     """Implements the canonical VAE objective (ELBO) inside Lightning."""
+
     # BaseVAE inherits from PyTorch LightningModule for automatic training loop management
 
     def __init__(
         self,
         encoder: nn.Module,  # Neural network that maps input x to latent parameters (mu, logvar)
         decoder: nn.Module,  # Neural network that maps latent z back to reconstructed input
-        input_shape=(1, 28, 28),  # Expected shape of input data (channels, height, width)
+        input_shape=(
+            1,
+            28,
+            28,
+        ),  # Expected shape of input data (channels, height, width)
         z_dim: int = 15,  # Dimensionality of the latent space (bottleneck size)
         lr: float = 1e-3,  # Learning rate for Adam optimizer
         beta: float = 1.0,  # Weight for KL divergence term (beta-VAE parameter)
         weight_decay: float = 0.0,  # L2 regularization weight
     ):
         super().__init__()
-        self.save_hyperparameters(ignore=["encoder", "decoder"])  # Save hyperparams for checkpointing, exclude encoder/decoder as they're modules
+        self.save_hyperparameters(
+            ignore=["encoder", "decoder"]
+        )  # Save hyperparams for checkpointing, exclude encoder/decoder as they're modules
         self.encoder = encoder  # Store reference to encoder network
         self.decoder = decoder  # Store reference to decoder network
         self.input_shape = input_shape  # Store expected input dimensions

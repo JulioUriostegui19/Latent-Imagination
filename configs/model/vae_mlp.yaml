@@ -1,0 +1,7 @@
+type: vae_mlp
+z_dim: 15
+lr: 1e-3
+beta: 1.0
+weight_decay: 0.0
+encoder_hidden: [512, 256]
+decoder_hidden: [256, 512]

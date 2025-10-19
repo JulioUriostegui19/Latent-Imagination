@@ -1,0 +1,7 @@
+defaults:
+  - dataset: mnist
+  - test_settings: default
+
+models: []
+tests: []
+output_dir: ./analytics

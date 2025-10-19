@@ -1,0 +1,11 @@
+epochs: 100
+save_dir: ./runs/default
+use_amp: false
+early_stopping: true
+patience: 10
+save_top_k: 3
+grad_clip: 1.0
+monitor_val_loss: true
+deterministic: false
+log_every_n_steps: 50
+use_gpu: true

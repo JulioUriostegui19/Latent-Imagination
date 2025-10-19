@@ -1,0 +1,9 @@
+name: mnist
+data_dir: ./data
+batch_size: 256
+num_workers: 4
+pin_memory: true
+val_split: 0.1
+sun_resize: 64
+sun_to_grayscale: true
+split_seed: 42

@@ -1,160 +1,135 @@
-"""Entrypoint for configuring and launching VAE training runs."""
-# Main entry point script for VAE training experiments
-# Handles configuration loading, model building, and training orchestration
+"""Entrypoint for configuring and launching VAE training runs via Hydra."""
 
-# run.py
 import math  # Mathematical operations for dimension calculations
-import yaml  # YAML configuration file parsing
+from typing import Mapping, Sequence  # Type hints for function parameters and returns
+
+import hydra  # Hydra framework for configuration management
+from hydra.utils import to_absolute_path  # Utility to convert relative paths to absolute
+from omegaconf import DictConfig, OmegaConf  # OmegaConf for configuration handling
+
 from utils.dataloaders import GenericImageDataModule  # Data loading utilities
-from models import (  # Import all model architectures from models package
-    MLPEncoder,
-    MLPDecoder,
-    ConvEncoder,
-    ConvDecoder,
-    BaseVAE,
-    IterativeVAE,
+from models import (  # Import all model components
+    MLPEncoder,  # Multi-layer perceptron encoder
+    MLPDecoder,  # Multi-layer perceptron decoder
+    ConvEncoder,  # Convolutional encoder
+    ConvDecoder,  # Convolutional decoder
+    BaseVAE,  # Standard VAE implementation
+    IterativeVAE,  # Iterative VAE with SVI refinement
 )
-from train_engine import train  # Training engine with Lightning trainer setup
+from train_engine import train  # Training engine function
 
 
-def _hidden_pair(hidden):
+def _hidden_pair(hidden: Sequence[int]) -> tuple[int, int]:  # Helper function to ensure encoder/decoder symmetry
     """Ensure hidden size lists have at least two entries for encoder/decoder symmetry."""
-    # Helper function to handle cases where only one hidden size is specified
-    # If only one size provided, use it for both layers (symmetric architecture)
+    # Accept single-element lists (e.g., [512]) and mirror the value for deeper layers.
     if len(hidden) == 1:
         return hidden[0], hidden[0]
-    # If two or more sizes provided, use first two (ignore extras)
+    # Ignore additional entries beyond the first two to keep architecture compact.
     return hidden[0], hidden[1]
 
 
-def build_model_from_cfg(cfg, input_shape):
+def build_model_from_cfg(model_cfg: Mapping, input_shape):  # Factory function to create models from configuration
     """Instantiate the requested model class with hyperparameters from the config."""
-    # Extract model configuration from main config dict
-    mcfg = cfg["model"]
-    # Get latent dimension (default to 15 if not specified)
-    z_dim = mcfg.get("z_dim", 15)
-    # Convert input shape to tuple for consistency
-    input_shape = tuple(input_shape)
-    # Calculate flattened input dimension for MLP architectures
-    input_dim = math.prod(input_shape)
+    # Hydrated OmegaConf mapping passed in; use regular dict access for ergonomics.
+    mcfg = model_cfg
+    z_dim = mcfg.get("z_dim", 15)  # Latent dimension size, default 15
+    input_shape = tuple(input_shape)  # Convert input shape to tuple
+    input_dim = math.prod(input_shape)  # Calculate total input dimensions for MLP layers
+
     if mcfg["type"] == "vae_mlp":
-        # Fully connected encoder/decoder; default to symmetric hidden sizes.
-        # Get encoder hidden layer sizes (default: [512, 256])
-        enc_hidden = mcfg.get("encoder_hidden", [512, 256])
-        # Get decoder hidden layer sizes (default: reverse of encoder for symmetry)
-        dec_hidden = mcfg.get("decoder_hidden", list(reversed(enc_hidden)))
-        # Ensure we have exactly two hidden sizes for each network
-        enc_h1, enc_h2 = _hidden_pair(enc_hidden)
-        dec_h1, dec_h2 = _hidden_pair(dec_hidden)
-        # Create MLP encoder with specified architecture
-        enc = MLPEncoder(
+        enc_hidden = mcfg.get("encoder_hidden", [512, 256])  # default sensible sizes
+        dec_hidden = mcfg.get("decoder_hidden", list(reversed(enc_hidden)))  # mirror encoder
+        enc_h1, enc_h2 = _hidden_pair(enc_hidden)  # Extract encoder hidden dimensions
+        dec_h1, dec_h2 = _hidden_pair(dec_hidden)  # Extract decoder hidden dimensions
+        encoder = MLPEncoder(  # Create MLP encoder instance
             input_shape=input_shape,
             input_dim=input_dim,
             h1=enc_h1,
             h2=enc_h2,
             z_dim=z_dim,
         )
-        # Create MLP decoder with specified architecture (typically symmetric to encoder)
-        dec = MLPDecoder(
+        decoder = MLPDecoder(  # Create MLP decoder instance
             output_shape=input_shape,
             output_dim=input_dim,
             h1=dec_h1,
             h2=dec_h2,
             z_dim=z_dim,
         )
-        # Create standard VAE with MLP encoder/decoder
-        model = BaseVAE(
-            enc,
-            dec,
+        model = BaseVAE(  # Create base VAE model with MLP components
+            encoder,
+            decoder,
             input_shape=input_shape,
             z_dim=z_dim,
             lr=mcfg.get("lr", 1e-3),
             beta=mcfg.get("beta", 1.0),
+            weight_decay=mcfg.get("weight_decay", 0.0),
         )
     elif mcfg["type"] == "vae_conv":
-        # Convolutional variant: conv/transpose-conv stacks share channel schedule.
-        # Get encoder convolutional channel sizes (default: [32, 64])
-        enc_hidden = tuple(mcfg.get("conv_hidden", [32, 64]))
-        # Get decoder deconvolutional channel sizes (default: reverse of encoder)
-        dec_hidden = tuple(mcfg.get("deconv_hidden", list(reversed(enc_hidden))))
-        # Create convolutional encoder with specified architecture
-        enc = ConvEncoder(input_shape=input_shape, hidden_dims=enc_hidden, z_dim=z_dim)
-        # Create convolutional decoder with specified architecture (mirrors encoder)
-        dec = ConvDecoder(output_shape=input_shape, hidden_dims=dec_hidden, z_dim=z_dim)
-        # Create standard VAE with convolutional encoder/decoder
-        model = BaseVAE(
-            enc,
-            dec,
+        enc_hidden = tuple(mcfg.get("conv_hidden", [32, 64]))  # channel schedule for downsampling
+        dec_hidden = tuple(mcfg.get("deconv_hidden", list(reversed(enc_hidden))))  # upsampling schedule
+        encoder = ConvEncoder(input_shape=input_shape, hidden_dims=enc_hidden, z_dim=z_dim)  # Create convolutional encoder
+        decoder = ConvDecoder(output_shape=input_shape, hidden_dims=dec_hidden, z_dim=z_dim)  # Create convolutional decoder
+        model = BaseVAE(  # Create base VAE model with convolutional components
+            encoder,
+            decoder,
             input_shape=input_shape,
             z_dim=z_dim,
             lr=mcfg.get("lr", 1e-3),
             beta=mcfg.get("beta", 1.0),
+            weight_decay=mcfg.get("weight_decay", 0.0),
         )
-    elif mcfg["type"] == "ivae_iterative":
-        # Semi-amortized VAE: reuse MLPs but train with inner-loop SVI.
-        # Get encoder hidden layer sizes (default: [512, 256])
+    elif mcfg["type"] == "ivae_iterative":  # Iterative VAE with SVI refinement
         enc_hidden = mcfg.get("encoder_hidden", [512, 256])
-        # Get decoder hidden layer sizes (default: reverse of encoder for symmetry)
         dec_hidden = mcfg.get("decoder_hidden", list(reversed(enc_hidden)))
-        # Ensure we have exactly two hidden sizes for each network
-        enc_h1, enc_h2 = _hidden_pair(enc_hidden)
-        dec_h1, dec_h2 = _hidden_pair(dec_hidden)
-        # Create MLP encoder for amortized inference (initial estimate)
-        enc = MLPEncoder(
+        enc_h1, enc_h2 = _hidden_pair(enc_hidden)  # Extract encoder hidden dimensions
+        dec_h1, dec_h2 = _hidden_pair(dec_hidden)  # Extract decoder hidden dimensions
+        encoder = MLPEncoder(  # Create MLP encoder for iterative VAE
             input_shape=input_shape,
             input_dim=input_dim,
             h1=enc_h1,
             h2=enc_h2,
             z_dim=z_dim,
         )
-        # Create MLP decoder for reconstruction
-        dec = MLPDecoder(
+        decoder = MLPDecoder(  # Create MLP decoder for iterative VAE
             output_shape=input_shape,
             output_dim=input_dim,
             h1=dec_h1,
             h2=dec_h2,
             z_dim=z_dim,
         )
-        # Create iterative VAE with SVI refinement (semi-amortized inference)
-        model = IterativeVAE(
-            enc,
-            dec,
+        model = IterativeVAE(  # Create iterative VAE with SVI capabilities
+            encoder,
+            decoder,
             input_shape=input_shape,
             z_dim=z_dim,
             lr_model=mcfg.get("lr", 1e-4),  # Learning rate for model parameters
-            lr_inf=mcfg.get("lr_inf", 1e-2),  # Learning rate for SVI inference
+            lr_inf=mcfg.get("lr_inf", 1e-2),  # Learning rate for inference
             svi_steps=mcfg.get("svi_steps", 20),  # Number of SVI refinement steps
-            beta=mcfg.get("beta", 1.0),  # Beta weight for KL term
+            beta=mcfg.get("beta", 1.0),
+            weight_decay=mcfg.get("weight_decay", 0.0),
         )
     else:
-        raise ValueError("Unknown model type")
-    # Return the constructed model ready for training
-    return model
+        raise ValueError(f"Unknown model type '{mcfg['type']}'")  # Error for unsupported model types
+    return model  # Return the constructed model
 
 
-if __name__ == "__main__":
-    # Main execution entry point
-    cfg_path = "configs/default.yaml"  # Default configuration file path
-    # Load experiment-wide configuration from YAML file
-    with open(cfg_path, "r") as f:
-        cfg = yaml.safe_load(f)
+@hydra.main(version_base=None, config_path="configs", config_name="config")  # Hydra decorator for configuration management
+def main(cfg: DictConfig):  # Main entry point function
+    """Hydra entrypoint for training configured VAE variants."""
+    # Convert OmegaConf nodes to plain Python containers for Lightning/datamodule usage.
+    dataset_cfg = OmegaConf.to_container(cfg.dataset, resolve=True)  # Convert dataset config to Python dict
+    # Convert relative data directory to absolute path so training works from Hydra's run dir.
+    dataset_cfg["data_dir"] = to_absolute_path(dataset_cfg.get("data_dir", "./data"))
+    data_module = GenericImageDataModule(**dataset_cfg)  # Create data module from configuration
 
-    # Extract dataset configuration
-    dm_cfg = cfg["dataset"]
-    # Instantiate datamodule with dataset-specific preprocessing options
-    data_module = GenericImageDataModule(
-        name=dm_cfg.get("name", "mnist"),  # Dataset name (default: MNIST)
-        data_dir=dm_cfg.get("data_dir", "./data"),  # Data directory (default: ./data)
-        batch_size=dm_cfg.get("batch_size", 128),  # Batch size (default: 128)
-        num_workers=dm_cfg.get("num_workers", 4),  # Worker processes (default: 4)
-        pin_memory=dm_cfg.get("pin_memory", True),  # Memory pinning (default: True)
-        val_split=dm_cfg.get("val_split", 0.1),  # Validation split for SUN (default: 0.1)
-        sun_resize=dm_cfg.get("sun_resize", 64),  # SUN resize (default: 64x64)
-        sun_to_grayscale=dm_cfg.get("sun_to_grayscale", True),  # SUN grayscale (default: True)
-        split_seed=dm_cfg.get("split_seed", 42),  # Random seed for splits (default: 42)
-    )
-    # Build model from configuration using inferred input shape from dataset
-    model = build_model_from_cfg(cfg, input_shape=data_module.input_shape)
+    model = build_model_from_cfg(cfg.model, input_shape=data_module.input_shape)  # Build model from config
 
-    # Kick off the PyTorch Lightning training loop with training configuration
-    train(cfg=cfg["train"], model=model, datamodule=data_module)
+    train_cfg = OmegaConf.to_container(cfg.train, resolve=True)  # Convert training config to Python dict
+    # Persist logs/checkpoints under the original project tree rather than Hydra's subdir.
+    train_cfg["save_dir"] = to_absolute_path(train_cfg.get("save_dir", "./runs"))
+
+    train(cfg=train_cfg, model=model, datamodule=data_module)  # Start training process
+
+
+if __name__ == "__main__":  # Standard Python entry point guard
+    main()  # Execute main function

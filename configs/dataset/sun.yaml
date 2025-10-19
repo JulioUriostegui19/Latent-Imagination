@@ -1,0 +1,9 @@
+name: sun
+data_dir: ./data/sun
+batch_size: 128
+num_workers: 4
+pin_memory: true
+val_split: 0.1
+sun_resize: 128
+sun_to_grayscale: false
+split_seed: 42

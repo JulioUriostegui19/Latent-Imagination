@@ -1,0 +1,4 @@
+defaults:
+  - dataset: mnist
+  - model: vae_mlp
+  - train: default
