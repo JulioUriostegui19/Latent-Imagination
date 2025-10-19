@@ -92,8 +92,19 @@ def _load_model_spec(name: str, checkpoint_path: str, device: torch.device) -> M
         raise FileNotFoundError(f"Checkpoint not found: {abs_path}")
 
     ckpt = torch.load(abs_path, map_location=device)
-    state_dict: Dict[str, torch.Tensor] = ckpt["state_dict"]
-    hparams: Mapping[str, object] = ckpt.get("hyper_parameters", {})
+    # Lightning `.ckpt` files store weights under `state_dict`. Plain PyTorch `.pth`
+    # checkpoints might already be a flat parameter mapping, so handle both.
+    if isinstance(ckpt, dict) and "state_dict" in ckpt:
+        state_dict: Dict[str, torch.Tensor] = ckpt["state_dict"]
+        hparams: Mapping[str, object] = ckpt.get("hyper_parameters", {})
+    elif isinstance(ckpt, dict) and all(isinstance(v, torch.Tensor) for v in ckpt.values()):
+        state_dict = ckpt
+        hparams = {}
+    else:
+        raise KeyError(
+            "Checkpoint must either contain a 'state_dict' entry (Lightning) "
+            "or be a raw parameter dictionary."
+        )
 
     architecture = _infer_architecture(state_dict)
     encoder, decoder = _build_modules(architecture, hparams, state_dict)

@@ -1,6 +1,7 @@
 defaults:
   - dataset: mnist
   - test_settings: default
+  - _self_
 
 models: []
 tests: []
