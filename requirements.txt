@@ -1,0 +1,17 @@
+# Core Deep Learning Dependencies
+torch>=2.0.0
+torchvision>=0.15.0
+pytorch-lightning>=2.0.0
+
+# Configuration Management
+hydra-core>=1.3.0
+omegaconf>=2.3.0
+
+# Data Processing & Numerical Computing
+numpy>=1.21.0
+
+# Visualization & Analytics
+matplotlib>=3.5.0
+
+# Optional: For Jupyter notebook analytics (uncomment if needed)
+# opencv-python>=4.5.0
