@@ -43,20 +43,26 @@ python test.py models=["model.ckpt"] tests=["iterative"]  # Iterative inference 
 python test.py models=["model.ckpt"] tests=["ood"]        # Out-of-distribution testing
 ```
 
-### Monitoring Training
+### Monitoring & Dashboard
 ```bash
-# Launch TensorBoard to monitor training progress
-# Logs are saved to ./runs/ directory by default
-tensorboard --logdir ./runs
+# Launch TensorBoard via dashboard helper (recommended)
+python dashboard.py --launch-tensorboard --logdir runs
 
-# Monitor specific experiment
-tensorboard --logdir ./runs/experiment_name
+# Print effective configs used by train/test
+python get_cfg.py --train
+python get_cfg.py --test
+
+# Quick model visualization (encoder/decoder)
+python get_model.py --tools torchinfo --model-type encoder --input-shape 1 28 28
+python dashboard.py --model-overview --tools torchinfo tensorboard --model-type decoder --input-shape 1 28 28
 ```
 
 ### Development Setup
 ```bash
-# Install dependencies (no requirements.txt exists)
-pip install torch pytorch-lightning torchvision hydra-core pyyaml tensorboard
+# Install dependencies
+pip install -r requirements.txt
+# Optional tools used by get_model/dashboard
+pip install torchinfo hiddenlayer
 
 # Create virtual environment (recommended)
 python -m venv venv
@@ -74,6 +80,9 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 - **train.py**: Main entry point that loads config, builds model, and starts training
 - **train_engine.py**: PyTorch Lightning training utilities with callbacks and logging
 - **test.py**: Model evaluation script for analytics and testing
+- **get_cfg.py**: Prints composed/effective Hydra configs for train/test
+- **get_model.py**: CLI to visualize encoder/decoder with torchinfo/hiddenlayer
+- **dashboard.py**: Colab-friendly helper to launch TensorBoard, print configs, run overviews and simple sweeps
 - **models/**: Model implementations split between standard VAE and iterative VAE
   - `models/vae/`: Standard VAE implementations (base.py, architectures.py)
   - `models/ivae/`: Iterative VAE with SVI refinement (iterative.py)

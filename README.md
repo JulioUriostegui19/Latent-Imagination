@@ -23,11 +23,18 @@ cd cognitive-vae
 # Install dependencies (you'll need these for the magic to happen)
 pip install torch pytorch-lightning torchvision pyyaml tensorboard
 
-# Train a model on MNIST (because we all start with handwritten digits)
-python train.py
+# Show effective configs (train/test)
+python get_cfg.py --train
+python get_cfg.py --test
 
-# Watch the magic happen in real-time
-tensorboard --logdir ./runs
+# Visualize encoder/decoder modules quickly
+python get_model.py --tools torchinfo --model-type encoder --input-shape 1 28 28 --hidden-dims 32 64 --z-dim 32
+
+# Launch a simple dashboard (TensorBoard + helpers)
+python dashboard.py --launch-tensorboard --logdir runs
+
+# Train a model on MNIST
+python train.py
 ```
 
 ## 🧬 The Science Behind the Magic
@@ -89,12 +96,53 @@ train:
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install in development mode
-pip install -e .
+# Install core + optional visualizers
+pip install -r requirements.txt
+pip install torchinfo hiddenlayer  # optional tools used by get_model/dashboard
 
-# Run experiments with different configs
-python train.py --config configs/experiment1.yaml
-python train.py --config configs/experiment2.yaml
+# Explore composed configs
+python get_cfg.py --train
+python get_cfg.py --test
+
+# Quick model overviews
+python get_model.py --tools torchinfo --model-type encoder --input-shape 1 28 28
+python dashboard.py --model-overview --tools torchinfo tensorboard --model-type decoder --input-shape 1 28 28
+
+# Train with overrides
+python train.py model=vae_conv dataset=mnist train.epochs=10
+
+## 🧭 Dashboard Examples
+- Launch TensorBoard and keep it running while you explore:
+  - `python dashboard.py --launch-tensorboard --logdir runs`
+
+- Show the exact configs the repo would use right now:
+  - `python dashboard.py --print-cfg train`
+  - `python dashboard.py --print-cfg test`
+
+- CNN VAE encoder overview (MNIST-like):
+  - `python dashboard.py --model-overview --tools torchinfo hiddenlayer --model-type encoder --input-shape 1 28 28 --hidden-dims 32 64 --z-dim 32`
+
+- CNN VAE decoder overview (MNIST-like):
+  - `python dashboard.py --model-overview --tools torchinfo hiddenlayer --model-type decoder --input-shape 1 28 28 --hidden-dims 64 32 --z-dim 32`
+
+- Whole-model visualization (graph):
+  - The training loop already logs a graph to TensorBoard for inspection. Start TensorBoard with the dashboard, then run a short train to materialize the graph:
+  - `python dashboard.py --launch-tensorboard --logdir runs`
+  - `python train.py train.epochs=1`
+  - Open the printed URL and check the Graphs tab.
+
+- IVAE (iterative) model overview:
+  - For now, use the TensorBoard graph from a short training run as above. If you want encoder/decoder-only views for IVAE, we can extend the dashboard to support MLP encoders/decoders similarly to the CNN ones.
+
+- Hyperparameter tests (quick sequential trials):
+  - `python dashboard.py --run-sweep "train.epochs=2 model.beta=0.5::train.epochs=2 model.beta=2.0"`
+
+- Visualize current train/test parameters inside the dashboard:
+  - Use the `--print-cfg` switch to print the effective Hydra config with all defaults and overrides resolved:
+  - `python dashboard.py --print-cfg train`
+  - `python dashboard.py --print-cfg test`
+
+Note: The dashboard’s model overview currently targets CNN encoder/decoder blocks; whole-model graphs are best viewed in TensorBoard. If you’d like, we can add support for MLP/IVAE module overviews in `get_model.py` and expose them via the dashboard.
 ```
 
 ## 📚 Citation & Academic Context
