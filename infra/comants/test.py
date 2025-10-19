@@ -9,8 +9,8 @@ import torch  # PyTorch for deep learning operations
 from hydra.utils import to_absolute_path  # Utility to convert relative paths to absolute
 from omegaconf import DictConfig, OmegaConf  # OmegaConf for configuration handling
 
-from analytics import ModelSpec, run_iterative_inference_test, run_ood_test  # Analytics utilities
-from models import (  # Import all model components
+from research.analysis import ModelSpec, run_iterative_inference_test, run_ood_test  # Analytics utilities
+from research.models import (  # Import all model components
     BaseVAE,
     IterativeVAE,
     ConvDecoder,
@@ -18,7 +18,7 @@ from models import (  # Import all model components
     MLPDecoder,
     MLPEncoder,
 )
-from utils.dataloaders import GenericImageDataModule  # Data loading utilities
+from infra.utils.dataloaders import GenericImageDataModule  # Data loading utilities
 
 
 def _parse_model_specs(specs: Sequence[str]) -> List[Tuple[str, str]]:

@@ -12,7 +12,7 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 
-from utils.filesystem import ensure_dir
+from infra.utils.filesystem import ensure_dir
 
 
 def build_callbacks(cfg):

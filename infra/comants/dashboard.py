@@ -39,7 +39,9 @@ def _ensure_dir(p: str | Path) -> None:
     Path(p).mkdir(parents=True, exist_ok=True)
 
 
-def launch_tensorboard(logdir: str, port: int, host: str, background: bool = True) -> str:
+def launch_tensorboard(
+    logdir: str, port: int, host: str, background: bool = True
+) -> str:
     """Start TensorBoard pointing at `logdir`. Returns human-friendly info string.
 
     In Colab, this runs as a background process so you can start training next.
@@ -110,12 +112,12 @@ def print_cfg(which: str) -> None:
 
 def model_overview(args) -> None:
     try:
-        from get_model import unleash_the_badass_visualizer
+        from infra.comants.get_model import get_mode
     except Exception as exc:
         print(f"Model overview unavailable (import failed): {exc}")
         return
 
-    results = unleash_the_badass_visualizer(
+    results = get_mode(
         tools=args.tools,
         model_type=args.model_type,
         input_shape=args.input_shape,
@@ -152,18 +154,41 @@ def run_sweep(spec: str, base_overrides: List[str] | None = None) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Project dashboard helpers")
-    p.add_argument("--launch-tensorboard", action="store_true", help="Start TensorBoard in background")
-    p.add_argument("--stop-tensorboard", action="store_true", help="Stop background TensorBoard")
-    p.add_argument("--logdir", default="runs", help="TensorBoard logdir (default: runs)")
-    p.add_argument("--port", type=int, default=6006, help="TensorBoard port (default: 6006)")
-    p.add_argument("--host", default="0.0.0.0", help="TensorBoard host (default: 0.0.0.0)")
+    p.add_argument(
+        "--launch-tensorboard",
+        action="store_true",
+        help="Start TensorBoard in background",
+    )
+    p.add_argument(
+        "--stop-tensorboard", action="store_true", help="Stop background TensorBoard"
+    )
+    p.add_argument(
+        "--logdir", default="runs", help="TensorBoard logdir (default: runs)"
+    )
+    p.add_argument(
+        "--port", type=int, default=6006, help="TensorBoard port (default: 6006)"
+    )
+    p.add_argument(
+        "--host", default="0.0.0.0", help="TensorBoard host (default: 0.0.0.0)"
+    )
 
-    p.add_argument("--print-cfg", choices=["train", "test"], help="Print effective Hydra config")
+    p.add_argument(
+        "--print-cfg", choices=["train", "test"], help="Print effective Hydra config"
+    )
 
-    p.add_argument("--model-overview", action="store_true", help="Run quick model overview tools")
-    p.add_argument("--tools", nargs="+", default=["torchinfo"], help="Tools: torchinfo tensorboard hiddenlayer")
+    p.add_argument(
+        "--model-overview", action="store_true", help="Run quick model overview tools"
+    )
+    p.add_argument(
+        "--tools",
+        nargs="+",
+        default=["torchinfo"],
+        help="Tools: torchinfo tensorboard hiddenlayer",
+    )
     p.add_argument("--model-type", choices=["encoder", "decoder"], default="encoder")
-    p.add_argument("--input-shape", nargs=3, type=int, metavar=("C", "H", "W"), default=[1, 28, 28])
+    p.add_argument(
+        "--input-shape", nargs=3, type=int, metavar=("C", "H", "W"), default=[1, 28, 28]
+    )
     p.add_argument("--hidden-dims", nargs="+", type=int, default=[32, 64])
     p.add_argument("--z-dim", type=int, default=32)
     p.add_argument("--visual-batch-size", type=int, default=1)
@@ -174,7 +199,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=str,
         help=(
             "Sequential trials spec; '::'-separated override strings.\n"
-            "Example: \"train.epochs=2 model.beta=0.5::train.epochs=2 model.beta=2.0\""
+            'Example: "train.epochs=2 model.beta=0.5::train.epochs=2 model.beta=2.0"'
         ),
     )
     return p
@@ -214,4 +239,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

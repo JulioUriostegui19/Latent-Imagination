@@ -78,16 +78,15 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 ### Key Components
 - **train.py**: Main entry point that loads config, builds model, and starts training
-- **train_engine.py**: PyTorch Lightning training utilities with callbacks and logging
+- **infra/pipelines/train_engine.py**: PyTorch Lightning training utilities with callbacks and logging
 - **test.py**: Model evaluation script for analytics and testing
 - **get_cfg.py**: Prints composed/effective Hydra configs for train/test
 - **get_model.py**: CLI to visualize encoder/decoder with torchinfo/hiddenlayer
 - **dashboard.py**: Colab-friendly helper to launch TensorBoard, print configs, run overviews and simple sweeps
-- **models/**: Model implementations split between standard VAE and iterative VAE
-  - `models/vae/`: Standard VAE implementations (base.py, architectures.py)
-  - `models/ivae/`: Iterative VAE with SVI refinement (iterative.py)
-- **utils/**: Data loading, loss functions, and filesystem utilities
-- **analytics/**: Evaluation and testing utilities
+- **research/models/**: VAE and IVAE implementations
+- **research/tools/**: ELBO, losses, and research utilities
+- **research/analysis/**: Evaluation and testing utilities
+- **infra/utils/**: Data loading and filesystem utilities
 - **configs/**: YAML configuration files for experiments
 
 ### Configuration System

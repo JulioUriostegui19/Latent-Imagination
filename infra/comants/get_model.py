@@ -21,7 +21,7 @@ from typing import Any, Dict, Sequence
 import torch
 
 # Import model blocks from the package
-from models import ConvDecoder, ConvEncoder
+from research.models import ConvDecoder, ConvEncoder
 
 
 def get_mode(

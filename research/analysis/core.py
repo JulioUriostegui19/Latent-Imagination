@@ -14,8 +14,8 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms.functional as TF
 
-from models import BaseVAE, IterativeVAE, ConvDecoder, ConvEncoder, MLPDecoder, MLPEncoder
-from utils.losses import elbo_per_sample
+from research.models import BaseVAE, IterativeVAE, ConvDecoder, ConvEncoder, MLPDecoder, MLPEncoder
+from research.tools.losses import elbo_per_sample
 
 
 def recon_mse(recon: torch.Tensor, target: torch.Tensor) -> Tuple[np.ndarray, float]:

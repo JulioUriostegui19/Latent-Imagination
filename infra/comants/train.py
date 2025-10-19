@@ -7,8 +7,8 @@ import hydra  # Hydra framework for configuration management
 from hydra.utils import to_absolute_path  # Utility to convert relative paths to absolute
 from omegaconf import DictConfig, OmegaConf  # OmegaConf for configuration handling
 
-from utils.dataloaders import GenericImageDataModule  # Data loading utilities
-from models import (  # Import all model components
+from infra.utils.dataloaders import GenericImageDataModule  # Data loading utilities
+from research.models import (  # Import all model components
     MLPEncoder,  # Multi-layer perceptron encoder
     MLPDecoder,  # Multi-layer perceptron decoder
     ConvEncoder,  # Convolutional encoder
@@ -16,7 +16,7 @@ from models import (  # Import all model components
     BaseVAE,  # Standard VAE implementation
     IterativeVAE,  # Iterative VAE with SVI refinement
 )
-from train_engine import train  # Training engine function
+from infra.pipelines.train_engine import train  # Training engine function
 
 
 def _hidden_pair(hidden: Sequence[int]) -> tuple[int, int]:  # Helper function to ensure encoder/decoder symmetry

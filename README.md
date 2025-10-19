@@ -143,6 +143,45 @@ python train.py model=vae_conv dataset=mnist train.epochs=10
   - `python dashboard.py --print-cfg test`
 
 Note: The dashboard’s model overview currently targets CNN encoder/decoder blocks; whole-model graphs are best viewed in TensorBoard. If you’d like, we can add support for MLP/IVAE module overviews in `get_model.py` and expose them via the dashboard.
+
+## 🗂️ Repository Structure
+- research/ — research core
+  - research/models — PyTorch/ML models (VAE, IVAE)
+  - research/analysis — analytics, plots, evaluation helpers
+  - research/tools — research-side tools (e.g., losses)
+  - research/notebooks — Jupyter/Colab notebooks
+  - research/experiments — experiment scripts
+  - research/data — optional preprocessed/synthetic data or pointers
+- infra/ — engine room
+  - infra/utils — shared non-research utilities (I/O, dataloaders)
+  - infra/pipelines — training/eval/data pipelines (e.g., train_engine)
+  - infra/logging — logging helpers (TensorBoard, custom)
+  - infra/visualization — visualization helpers
+- configs/ — Hydra configuration (kept at root)
+- train.py — training CLI (kept at root)
+- test.py — evaluation CLI (kept at root)
+- get_cfg.py — print effective configs
+- get_model.py — quick CNN encoder/decoder visualizations
+- dashboard.py — launch TensorBoard, print configs, overviews, sweeps
+
+Import paths after reorg
+- Models: `from research.models import BaseVAE, ConvEncoder, ...`
+- Utilities: `from infra.utils import GenericImageDataModule, ...`
+- Analytics: `from research.analysis import run_iterative_inference_test, ...`
+- Losses/ELBO: `from research.tools.losses import elbo_per_sample, ...`
+
+## 📓 Colab Magic Commands
+- Quick dashboard in Colab with background TensorBoard and live training:
+  - `!python dashboard.py --launch-tensorboard --logdir /content/runs --port 6006`
+  - `!python train.py`
+  - Then open the printed URL or use: `%load_ext tensorboard` and `%tensorboard --logdir /content/runs`
+
+- Print effective configs directly in a notebook cell:
+  - `!python dashboard.py --print-cfg train`
+  - `!python dashboard.py --print-cfg test`
+
+- Run a quick model overview (CNN encoder example):
+  - `!python dashboard.py --model-overview --tools torchinfo hiddenlayer --model-type encoder --input-shape 1 28 28 --hidden-dims 32 64 --z-dim 32`
 ```
 
 ## 📚 Citation & Academic Context

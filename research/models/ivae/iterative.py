@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 # Import custom loss functions for VAE training from utils module
-from utils.losses import elbo_per_sample, gaussian_kl
+from research.tools.losses import elbo_per_sample, gaussian_kl
 
 
 class IterativeVAE(pl.LightningModule):
