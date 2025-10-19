@@ -1,6 +1,6 @@
 """Convolutional encoder/decoder blocks for VAE models."""
 
-from typing import Sequence, Tuple  # Type hints for function signatures
+from typing import Any, Dict, Optional, Sequence, Tuple  # Type hints for function signatures
 
 import torch  # PyTorch for tensor operations
 import torch.nn as nn  # Neural network modules
@@ -85,3 +85,6 @@ class ConvDecoder(nn.Module):
     def forward(self, z: torch.Tensor):
         h = self.fc(z)
         return self.net(h)
+
+
+    

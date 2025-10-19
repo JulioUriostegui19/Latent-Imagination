@@ -1,7 +1,8 @@
 # Custom project exclusions
-description.dm
+description.md
 #CLAUDE.md
 .claude
+TODO.md
 
 # Python cache and compiled files
 __pycache__/
