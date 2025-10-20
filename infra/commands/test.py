@@ -5,6 +5,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+CONFIG_DIR = str((REPO_ROOT / "configs").resolve())
 
 import math  # Mathematical operations for dimension calculations
 from pathlib import Path  # Path manipulation utilities
@@ -221,7 +222,7 @@ def _prepare_dataloader(cfg: Mapping[str, object]) -> Iterable:
     return datamodule.val_dataloader()
 
 
-@hydra.main(version_base=None, config_path="configs", config_name="test")
+@hydra.main(version_base=None, config_path=CONFIG_DIR, config_name="test")
 def main(cfg: DictConfig):
     """Main entry point for model evaluation and analytics generation.
 

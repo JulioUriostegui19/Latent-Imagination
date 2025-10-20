@@ -5,6 +5,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+CONFIG_DIR = str((REPO_ROOT / "configs").resolve())
 
 import math  # Mathematical operations for dimension calculations
 from typing import Mapping, Sequence  # Type hints for function parameters and returns
@@ -119,7 +120,7 @@ def build_model_from_cfg(model_cfg: Mapping, input_shape):  # Factory function t
     return model  # Return the constructed model
 
 
-@hydra.main(version_base=None, config_path="configs", config_name="config")  # Hydra decorator for configuration management
+@hydra.main(version_base=None, config_path=CONFIG_DIR, config_name="config")  # Use repo-root configs
 def main(cfg: DictConfig):  # Main entry point function
     """Hydra entrypoint for training configured VAE variants."""
     # Convert OmegaConf nodes to plain Python containers for Lightning/datamodule usage.
