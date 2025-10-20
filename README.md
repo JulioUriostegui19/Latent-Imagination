@@ -16,6 +16,8 @@ Think of it as teaching computers to "imagine" like humans do - filling in missi
 ## 🚀 Tutorials
 
 ### 1) Quickstart: Training and Testing
+- Install dependencies (you'll need these for the magic to happen)
+  - `pip install -r requirements.txt`
 - Train with defaults (MNIST + MLP VAE):
   - `python train.py`
 - Train with overrides (examples):
@@ -31,25 +33,12 @@ Notes:
 - Logs and checkpoints land under `runs/` by default.
 
 ```bash
-# Clone this repository 
-git clone https://github.com/juliouriostegui/Latent-Imagination.git
-cd Latent-Imagination
-
-# Install dependencies (you'll need these for the magic to happen)
-pip install torch pytorch-lightning torchvision pyyaml tensorboard
-
 # Show effective configs (train/test)
 python get_cfg.py --train
 python get_cfg.py --test
 
 # Visualize encoder/decoder modules quickly
 python get_model.py --tools torchinfo --model-type encoder --input-shape 1 28 28 --hidden-dims 32 64 --z-dim 32
-
-# Launch a simple dashboard (TensorBoard + helpers)
-python dashboard.py --launch-tensorboard --logdir runs
-
-# Train a model on MNIST
-python train.py
 ```
 
 ## 🧬 The Science Behind the Magic
@@ -74,24 +63,7 @@ Traditional VAEs are cool, but they miss something fundamental about how humans 
 
 ## 📊 Experiment Configuration
 
-All experiments are configured through beautiful YAML files (because researchers love their config files):
-
-```yaml
-# configs/my_experiment.yaml
-dataset:
-  name: mnist
-  batch_size: 256
-
-model:
-  type: ivae_iterative  # The cognitive one!
-  z_dim: 20            # How many dimensions for our mental space?
-  lr: 1e-3
-  beta: 2.0            # KL divergence weight (the balancing act)
-
-train:
-  epochs: 100
-  early_stopping: true # Stop when imagination gets too wild
-```
+All experiments are configured through beautiful YAML files.
 
 ## 🔬 Research Questions I'm Exploring
 
@@ -104,29 +76,9 @@ train:
 
 *Coming soon!* (This is where I'll share the exciting findings once my experiments converge...)
 
-## 🛠️ Development Setup
+## 🛠️  Dashboard Usage (better for visualization)
 
 ```bash
-# Create a virtual environment (because hygiene matters)
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install core + optional visualizers
-pip install -r requirements.txt
-pip install torchinfo hiddenlayer  # optional tools used by get_model/dashboard
-
-# Explore composed configs
-python get_cfg.py --train
-python get_cfg.py --test
-
-# Quick model overviews
-python get_model.py --tools torchinfo --model-type encoder --input-shape 1 28 28
-python dashboard.py --model-overview --tools torchinfo tensorboard --model-type decoder --input-shape 1 28 28
-
-# Train with overrides
-python train.py model=vae_conv dataset=mnist train.epochs=10
-
-### 2) Dashboard Usage (better for visualization)
 - Launch TensorBoard and keep it running while you explore:
   - `python dashboard.py --launch-tensorboard --logdir runs`
 
