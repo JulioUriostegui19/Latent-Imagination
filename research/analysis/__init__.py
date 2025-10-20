@@ -13,6 +13,7 @@ from .core import (
     recon_mse,
     run_iterative_inference_test,
     run_ood_test,
+    run_test_by_name,
 )
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "recon_mse",
     "run_iterative_inference_test",
     "run_ood_test",
+    "run_test_by_name",
 ]
