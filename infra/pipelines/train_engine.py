@@ -57,17 +57,18 @@ def train(cfg: dict, model: pl.LightningModule, datamodule: pl.LightningDataModu
     callbacks = build_callbacks(cfg)
 
     # Configure PyTorch Lightning trainer with all necessary settings
+    use_gpu = bool(cfg.get("use_gpu", True)) and torch.cuda.is_available()
     trainer_kwargs = {
-        "max_epochs": cfg.get("epochs", 50),  # Maximum number of training epochs
-        # Use both TensorBoard and CSV loggers for flexibility and redundancy.
+        "max_epochs": cfg.get("epochs", 50),
         "logger": [tb_logger, csv_logger],
-        "callbacks": callbacks,  # Training callbacks for checkpointing and monitoring
-        # Select GPU automatically if available and allowed in config.
-        "gpus": 1 if torch.cuda.is_available() and cfg.get("use_gpu", True) else 0,
-        "precision": 16 if cfg.get("use_amp", False) else 32,  # Mixed precision training if enabled
-        "gradient_clip_val": cfg.get("grad_clip", 0.0),  # Gradient clipping to prevent exploding gradients
-        "deterministic": cfg.get("deterministic", False),  # Deterministic training for reproducibility
-        "log_every_n_steps": cfg.get("log_every_n_steps", 50),  # Logging frequency
+        "callbacks": callbacks,
+        # Lightning >=2.0 device configuration
+        "accelerator": "gpu" if use_gpu else "cpu",
+        "devices": 1 if use_gpu else 1,
+        "precision": 16 if cfg.get("use_amp", False) else 32,
+        "gradient_clip_val": cfg.get("grad_clip", 0.0),
+        "deterministic": cfg.get("deterministic", False),
+        "log_every_n_steps": cfg.get("log_every_n_steps", 50),
     }
     # Create PyTorch Lightning trainer with configured settings
     trainer = pl.Trainer(**trainer_kwargs)
