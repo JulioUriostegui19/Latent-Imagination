@@ -12,7 +12,6 @@ train:
   save_dir: ./runs/ivae_iterative_mlp
   use_amp: True
   early_stopping: True
-  grad_clip: 0.0
   patience: 10
   save_top_k: 2
-  grad_clip: 1.0
+  grad_clip: 0.0
