@@ -58,6 +58,13 @@ def train(cfg: dict, model: pl.LightningModule, datamodule: pl.LightningDataModu
 
     # Configure PyTorch Lightning trainer with all necessary settings
     use_gpu = bool(cfg.get("use_gpu", True)) and torch.cuda.is_available()
+    # Gradient clipping is not supported under manual optimization
+    requested_clip = float(cfg.get("grad_clip", 0.0))
+    if getattr(model, "automatic_optimization", True) is False and requested_clip:
+        print(
+            f"[train] Disabling gradient clipping (requested {requested_clip}) because manual optimization is enabled.")
+        requested_clip = 0.0
+
     trainer_kwargs = {
         "max_epochs": cfg.get("epochs", 50),
         "logger": [tb_logger, csv_logger],
@@ -66,7 +73,8 @@ def train(cfg: dict, model: pl.LightningModule, datamodule: pl.LightningDataModu
         "accelerator": "gpu" if use_gpu else "cpu",
         "devices": 1 if use_gpu else 1,
         "precision": 16 if cfg.get("use_amp", False) else 32,
-        "gradient_clip_val": cfg.get("grad_clip", 0.0),
+        # Include gradient clipping only when supported/requested
+        **({"gradient_clip_val": requested_clip} if requested_clip > 0 else {}),
         "deterministic": cfg.get("deterministic", False),
         "log_every_n_steps": cfg.get("log_every_n_steps", 50),
     }
