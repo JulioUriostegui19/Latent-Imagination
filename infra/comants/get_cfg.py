@@ -8,6 +8,7 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 from typing import Any, Dict
 
@@ -27,9 +28,14 @@ def _abs_data_dir(repo_root: Path, dataset_cfg: Dict[str, Any]) -> Dict[str, Any
 
 
 def show_train_cfg() -> str:
-    repo_root = Path(__file__).parent
-    with initialize(version_base=None, config_path=str(repo_root / "configs")):
-        cfg = compose(config_name="config")
+    repo_root = Path(__file__).resolve().parents[2]  # repo root (../../ from infra/comants)
+    cwd = os.getcwd()
+    try:
+        os.chdir(repo_root)
+        with initialize(version_base=None, config_path="configs"):
+            cfg = compose(config_name="config")
+    finally:
+        os.chdir(cwd)
 
     dataset_cfg = OmegaConf.to_container(cfg.dataset, resolve=True)
     train_cfg = OmegaConf.to_container(cfg.train, resolve=True)
@@ -47,9 +53,14 @@ def show_train_cfg() -> str:
 
 
 def show_test_cfg() -> str:
-    repo_root = Path(__file__).parent
-    with initialize(version_base=None, config_path=str(repo_root / "configs")):
-        cfg = compose(config_name="test")
+    repo_root = Path(__file__).resolve().parents[2]
+    cwd = os.getcwd()
+    try:
+        os.chdir(repo_root)
+        with initialize(version_base=None, config_path="configs"):
+            cfg = compose(config_name="test")
+    finally:
+        os.chdir(cwd)
 
     dataset_cfg = OmegaConf.to_container(cfg.dataset, resolve=True)
     test_settings = OmegaConf.to_container(cfg.test_settings, resolve=True)
