@@ -13,6 +13,7 @@ numpy>=1.21.0
 
 # Visualization & Analytics
 matplotlib>=3.5.0
-
+torchinfo>=1.8.0
+hiddenlayer>=0.3
 # Optional: For Jupyter notebook analytics (uncomment if needed)
 # opencv-python>=4.5.0

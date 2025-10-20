@@ -8,6 +8,7 @@ if str(REPO_ROOT) not in sys.path:
 CONFIG_DIR = str((REPO_ROOT / "configs").resolve())
 
 import math  # Mathematical operations for dimension calculations
+import torch  # For loading init weights
 from typing import Mapping, Sequence  # Type hints for function parameters and returns
 
 import hydra  # Hydra framework for configuration management
@@ -33,6 +34,31 @@ def _hidden_pair(hidden: Sequence[int]) -> tuple[int, int]:  # Helper function t
         return hidden[0], hidden[0]
     # Ignore additional entries beyond the first two to keep architecture compact.
     return hidden[0], hidden[1]
+
+
+def _maybe_load_init_weights(module: BaseVAE | IterativeVAE, init_path: str) -> None:
+    """Load encoder/decoder weights from a checkpoint into the provided module.
+
+    Supports Lightning checkpoints with 'state_dict' or raw state_dict mappings.
+    Only loads keys under 'encoder.' and 'decoder.' with strict=False.
+    """
+    ckpt = torch.load(init_path, map_location="cpu")
+    if isinstance(ckpt, dict) and "state_dict" in ckpt:
+        state = ckpt["state_dict"]
+    elif isinstance(ckpt, dict):
+        state = ckpt
+    else:
+        raise ValueError(f"Unsupported checkpoint format at {init_path}")
+
+    enc_prefix = "encoder."
+    dec_prefix = "decoder."
+    enc_state = {k[len(enc_prefix) :]: v for k, v in state.items() if k.startswith(enc_prefix)}
+    dec_state = {k[len(dec_prefix) :]: v for k, v in state.items() if k.startswith(dec_prefix)}
+    # Load into submodules with strict=False to allow minor naming diffs
+    if enc_state:
+        module.encoder.load_state_dict(enc_state, strict=False)
+    if dec_state:
+        module.decoder.load_state_dict(dec_state, strict=False)
 
 
 def build_model_from_cfg(model_cfg: Mapping, input_shape):  # Factory function to create models from configuration
@@ -117,6 +143,12 @@ def build_model_from_cfg(model_cfg: Mapping, input_shape):  # Factory function t
         )
     else:
         raise ValueError(f"Unknown model type '{mcfg['type']}'")  # Error for unsupported model types
+
+    # Optionally initialise weights from a pretrained VAE when requested
+    init_path = mcfg.get("init_weights")
+    if init_path:
+        _maybe_load_init_weights(model, to_absolute_path(init_path))
+
     return model  # Return the constructed model
 
 

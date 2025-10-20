@@ -116,7 +116,7 @@ def print_cfg(which: str) -> None:
 
 def model_overview(args) -> None:
     try:
-        from infra.comants.get_model import get_mode
+        from infra.commands.get_model import get_mode
     except Exception as exc:
         print(f"Model overview unavailable (import failed): {exc}")
         return

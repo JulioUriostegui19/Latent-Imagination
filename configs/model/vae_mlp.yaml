@@ -2,7 +2,7 @@
 type: vae_mlp            # Model key consumed by build_model_from_cfg
 z_dim: 15                # Latent dimension size
 lr: 1e-3                 # Learning rate
-beta: 1.0                # KL weight (beta-VAE)
+beta: 2.0                # KL weight (beta-VAE)
 weight_decay: 0.0        # L2 regularization weight
 encoder_hidden: [512, 256]  # Encoder hidden sizes
 decoder_hidden: [256, 512]  # Decoder hidden sizes (often mirrored)

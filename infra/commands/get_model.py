@@ -1,36 +1,40 @@
-"""CLI utility for quick model visualization using torchinfo, TensorBoard, and hiddenlayer.
+"""CLI utility for quick model visualization using torchinfo and hiddenlayer.
 
-Usage examples:
-  - Get an encoder torchinfo summary for MNIST-like inputs:
-      python get_model.py --tools torchinfo --model-type encoder --input-shape 1 28 28 --z-dim 32 --hidden-dims 32 64
+New usage (config-driven):
+  - Point to a model YAML (e.g., configs/model/vae_conv.yaml):
+      python run.py get_model configs/model/vae_conv.yaml --which encoder --tools torchinfo hiddenlayer
 
-  - Log a decoder graph to TensorBoard (open with: tensorboard --logdir runs):
-      python get_model.py --tools tensorboard --model-type decoder --input-shape 1 28 28 --z-dim 32 --hidden-dims 64 32
-
-  - Run multiple tools at once:
-      python get_model.py --tools torchinfo hiddenlayer tensorboard --model-type encoder --input-shape 1 28 28 --hidden-dims 32 64
+Notes:
+  - The YAML must include a `type` key: one of {vae_conv, vae_mlp, ivae_iterative}.
+  - For conv models, reads `conv_hidden`/`deconv_hidden`; for MLP, reads
+    `encoder_hidden`/`decoder_hidden`; always uses `z_dim`.
+  - Input shape defaults to 1x28x28; override with --input-shape if desired.
 """
 
 from __future__ import annotations
 
 import argparse
-import os
+import sys, os
 from pathlib import Path
 from typing import Any, Dict, Sequence
 
 import torch
+from omegaconf import OmegaConf
 
-# Import model blocks from the package
-from research.models import ConvDecoder, ConvEncoder
+# Ensure repo root is on sys.path so 'research' package resolves
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from research.models import ConvDecoder, ConvEncoder, MLPEncoder, MLPDecoder
 
 
 def get_mode(
     tools: Sequence[str],
-    model_type: str,
+    which: str,
     *,
+    cfg_path: str,
     input_shape: Sequence[int] | None,
-    hidden_dims: Sequence[int],
-    z_dim: int,
     visual_batch_size: int = 1,
     tensorboard_log_dir: str | None = None,
 ) -> Dict[str, Any]:
@@ -47,8 +51,16 @@ def get_mode(
     """
     toolset = {t.lower() for t in tools}
 
-    if model_type not in {"encoder", "decoder"}:
-        raise ValueError("model_type must be 'encoder' or 'decoder'")
+    if which not in {"encoder", "decoder"}:
+        raise ValueError("--which must be 'encoder' or 'decoder'")
+
+    # Load model config YAML
+    mcfg = OmegaConf.to_container(OmegaConf.load(cfg_path), resolve=True)
+    if not isinstance(mcfg, dict) or "type" not in mcfg:
+        raise ValueError("Model YAML must be a mapping with a 'type' key")
+
+    mtype = str(mcfg["type"]).lower()
+    z_dim = int(mcfg.get("z_dim", 32))
 
     if input_shape is None:
         input_shape = (1, 28, 28)
@@ -57,26 +69,47 @@ def get_mode(
             raise ValueError("--input-shape must have exactly 3 integers: C H W")
         input_shape = tuple(int(x) for x in input_shape)
 
-    hidden_dims = tuple(int(x) for x in hidden_dims) if hidden_dims else (32, 64)
-    z_dim = int(z_dim)
-
-    if model_type == "encoder":
-        model = ConvEncoder(
-            input_shape=input_shape, hidden_dims=hidden_dims, z_dim=z_dim
-        )
+    # Build the requested module from config type
+    if mtype == "vae_conv":
+        if which == "encoder":
+            hidden = tuple(int(x) for x in mcfg.get("conv_hidden", [32, 64]))
+            model = ConvEncoder(input_shape=input_shape, hidden_dims=hidden, z_dim=z_dim)
+        else:
+            hidden = tuple(int(x) for x in mcfg.get("deconv_hidden", [64, 32]))
+            model = ConvDecoder(output_shape=input_shape, hidden_dims=hidden, z_dim=z_dim)
+    elif mtype in {"vae_mlp", "ivae_iterative"}:
+        # Treat IVAE as MLP blocks for the purpose of static visualization
+        if which == "encoder":
+            enc = mcfg.get("encoder_hidden", [512, 256])
+            input_dim = int(input_shape[0] * input_shape[1] * input_shape[2])
+            model = MLPEncoder(
+                input_shape=input_shape,
+                input_dim=input_dim,
+                h1=int(enc[0]),
+                h2=int(enc[1] if len(enc) > 1 else enc[0]),
+                z_dim=z_dim,
+            )
+        else:
+            dec = mcfg.get("decoder_hidden", [256, 512])
+            output_dim = int(input_shape[0] * input_shape[1] * input_shape[2])
+            model = MLPDecoder(
+                output_shape=input_shape,
+                output_dim=output_dim,
+                h1=int(dec[0]),
+                h2=int(dec[1] if len(dec) > 1 else dec[0]),
+                z_dim=z_dim,
+            )
     else:
-        model = ConvDecoder(
-            output_shape=input_shape, hidden_dims=hidden_dims, z_dim=z_dim
-        )
+        raise ValueError(f"Unknown model type '{mtype}' in YAML")
 
     model.eval().to("cpu")
 
-    if model_type == "encoder":
+    if which == "encoder":
         example_input = torch.randn(visual_batch_size, *input_shape)
     else:
         example_input = torch.randn(visual_batch_size, z_dim)
 
-    log_dir = tensorboard_log_dir or os.path.join("runs", f"{model_type}_visuals")
+    log_dir = tensorboard_log_dir or os.path.join("runs", f"{which}_visuals")
     Path(log_dir).mkdir(parents=True, exist_ok=True)
 
     results: Dict[str, Any] = {}
@@ -102,7 +135,7 @@ def get_mode(
 
             graph = hl.build_graph(model, example_input)
             # Try to save a PNG artifact for quick viewing
-            out_base = os.path.join(log_dir, f"hiddenlayer_{model_type}")
+            out_base = os.path.join(log_dir, f"hiddenlayer_{which}")
             try:
                 graph.save(out_base, format="png")
                 results["hiddenlayer"] = f"{out_base}.png"
@@ -115,35 +148,26 @@ def get_mode(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Quick VAE module visualization")
+    parser = argparse.ArgumentParser(description="Quick model visualization from YAML config")
+    parser.add_argument("config", help="Path to model YAML (e.g., configs/model/vae_conv.yaml)")
     parser.add_argument(
         "--tools",
         nargs="+",
-        required=True,
-        help="One or more tools: torchinfo, tensorboard, hiddenlayer",
+        default=["torchinfo"],
+        help="One or more tools: torchinfo, hiddenlayer",
     )
     parser.add_argument(
-        "--model-type",
+        "--which",
         choices=["encoder", "decoder"],
-        required=True,
-        help="Select which module to visualize",
+        default="encoder",
+        help="Which module to visualize",
     )
     parser.add_argument(
         "--input-shape",
         nargs=3,
         type=int,
         metavar=("C", "H", "W"),
-        help="Input/output shape as C H W (default: 1 28 28)",
-    )
-    parser.add_argument(
-        "--hidden-dims",
-        nargs="+",
-        type=int,
-        default=[32, 64],
-        help="Conv channel schedule (default: 32 64)",
-    )
-    parser.add_argument(
-        "--z-dim", type=int, default=32, help="Latent dimension (default: 32)"
+        help="Override input/output shape as C H W (default: 1 28 28)",
     )
     parser.add_argument(
         "--visual-batch-size",
@@ -161,10 +185,9 @@ def main():
 
     results = get_mode(
         tools=args.tools,
-        model_type=args.model_type,
+        which=args.which,
+        cfg_path=args.config,
         input_shape=args.input_shape,
-        hidden_dims=args.hidden_dims,
-        z_dim=args.z_dim,
         visual_batch_size=args.visual_batch_size,
         tensorboard_log_dir=args.tensorboard_log_dir,
     )
