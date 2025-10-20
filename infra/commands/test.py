@@ -1,5 +1,11 @@
 """Evaluation script for generating analytics on trained VAE checkpoints."""
 
+import sys, os
+from pathlib import Path
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 import math  # Mathematical operations for dimension calculations
 from pathlib import Path  # Path manipulation utilities
 from typing import Dict, Iterable, List, Mapping, Sequence, Tuple  # Type hints for function signatures

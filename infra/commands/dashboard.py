@@ -26,13 +26,17 @@ Additional examples:
 from __future__ import annotations
 
 import argparse
-import os
+import sys, os
 import shlex
 import signal
 import subprocess
 from itertools import product
 from pathlib import Path
 from typing import List
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 
 def _ensure_dir(p: str | Path) -> None:

@@ -8,12 +8,16 @@ Examples:
 from __future__ import annotations
 
 import argparse
-import os
+import sys, os
 from pathlib import Path
 from typing import Any, Dict
 
 from hydra import compose, initialize, initialize_config_dir
 from omegaconf import OmegaConf
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 
 def _abs_path(repo_root: Path, rel_or_abs: str) -> str:
