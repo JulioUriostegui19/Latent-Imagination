@@ -13,7 +13,22 @@ Welcome to my digital laboratory! This repository contains my master thesis impl
 
 Think of it as teaching computers to "imagine" like humans do - filling in missing pieces, generating new combinations of familiar concepts, and navigating the blurry boundary between what's real and what's mentally constructed.
 
-## 🚀 Quick Start
+## 🚀 Tutorials
+
+### 1) Quickstart: Training and Testing
+- Train with defaults (MNIST + MLP VAE):
+  - `python train.py`
+- Train with overrides (examples):
+  - `python train.py model=vae_conv dataset=mnist train.epochs=10`
+  - `python train.py model=ivae_iterative train.epochs=20`
+- Test/evaluate trained checkpoints:
+  - `python test.py models=["path/to/model.ckpt"] tests=["iterative","ood"]`
+  - Multiple named models:
+    - `python test.py models=["baseline:path/to/base.ckpt","ivae:path/to/ivae.ckpt"] tests=["iterative"]`
+
+Notes:
+- Configs live in `configs/`; compose/override via Hydra (e.g., `dataset=sun`).
+- Logs and checkpoints land under `runs/` by default.
 
 ```bash
 # Clone this repository (and my dreams along with it)
@@ -111,7 +126,7 @@ python dashboard.py --model-overview --tools torchinfo tensorboard --model-type 
 # Train with overrides
 python train.py model=vae_conv dataset=mnist train.epochs=10
 
-## 🧭 Dashboard Examples
+### 2) Dashboard Usage (better for visualization)
 - Launch TensorBoard and keep it running while you explore:
   - `python dashboard.py --launch-tensorboard --logdir runs`
 
@@ -142,7 +157,19 @@ python train.py model=vae_conv dataset=mnist train.epochs=10
   - `python dashboard.py --print-cfg train`
   - `python dashboard.py --print-cfg test`
 
+- Launch TensorBoard in a notebook (Jupyter/Colab):
+  - `%load_ext tensorboard`
+  - `%tensorboard --logdir runs`
+
 Note: The dashboard’s model overview currently targets CNN encoder/decoder blocks; whole-model graphs are best viewed in TensorBoard. If you’d like, we can add support for MLP/IVAE module overviews in `get_model.py` and expose them via the dashboard.
+
+### 3) Configs and Model Tools
+- Show effective configs (train/test):
+  - `python get_cfg.py --train`
+  - `python get_cfg.py --test`
+- Quick CNN encoder/decoder visualization (text summary/graph):
+  - `python get_model.py --tools torchinfo --model-type encoder --input-shape 1 28 28 --hidden-dims 32 64 --z-dim 32`
+  - `python get_model.py --tools hiddenlayer --model-type decoder --input-shape 1 28 28 --hidden-dims 64 32 --z-dim 32`
 
 ## 🗂️ Repository Structure
 - research/ — research core

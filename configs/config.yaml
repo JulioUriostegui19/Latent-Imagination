@@ -1,4 +1,5 @@
+# Root Hydra config; compose dataset/model/train groups here (override via CLI)
 defaults:
-  - dataset: mnist
-  - model: vae_mlp
-  - train: default
+  - dataset: mnist       # Select dataset config (e.g., mnist, sun)
+  - model: vae_mlp       # Select model architecture (vae_mlp, vae_conv, ivae_iterative)
+  - train: default       # Training loop settings preset

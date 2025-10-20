@@ -9,7 +9,10 @@ import torch  # PyTorch for deep learning operations
 from hydra.utils import to_absolute_path  # Utility to convert relative paths to absolute
 from omegaconf import DictConfig, OmegaConf  # OmegaConf for configuration handling
 
-from research.analysis import ModelSpec, run_iterative_inference_test, run_ood_test  # Analytics utilities
+from research.analysis import (
+    ModelSpec,
+    run_test_by_name,
+)
 from research.models import (  # Import all model components
     BaseVAE,
     IterativeVAE,
@@ -246,38 +249,55 @@ def main(cfg: DictConfig):
 
     val_loader = _prepare_dataloader(cfg.dataset)
 
-    output_root = Path(to_absolute_path(cfg.output_dir))
-    output_root.mkdir(parents=True, exist_ok=True)
+    # Use Hydra's run directory for outputs (e.g., outputs/YYYY-MM-DD/HH-MM-SS)
+    output_root = Path.cwd()
+    tests_root = output_root / "tests"
+    tests_root.mkdir(parents=True, exist_ok=True)
 
     metrics: Dict[str, Dict[str, object]] = {}
 
     # Execute each requested test suite
     for test_name in cfg.tests:
-        if test_name == "iterative":
-            test_dir = output_root / "iterative_inference"
-            test_dir.mkdir(exist_ok=True, parents=True)
-            metrics["iterative"] = run_iterative_inference_test(
-                models=models,
-                loader=val_loader,
-                cfg=OmegaConf.to_container(cfg.test_settings.iterative, resolve=True),
-                device=device,
-                output_dir=test_dir,
-            )
-        elif test_name == "ood":
-            test_dir = output_root / "ood_analysis"
-            test_dir.mkdir(exist_ok=True, parents=True)
-            metrics["ood"] = run_ood_test(
-                models=models,
-                loader=val_loader,
-                cfg=OmegaConf.to_container(cfg.test_settings.ood, resolve=True),
-                device=device,
-                output_dir=test_dir,
-            )
-        else:
-            raise ValueError(f"Unknown test requested: {test_name}")
+        test_dir = tests_root / test_name
+        test_dir.mkdir(exist_ok=True, parents=True)
+
+        # Build test-specific config
+        test_cfg_node = getattr(cfg.test_settings, test_name, None)
+        if test_cfg_node is None:
+            raise ValueError(f"Missing test_settings for '{test_name}'")
+        test_cfg = OmegaConf.to_container(test_cfg_node, resolve=True)
+
+        # Save an overview of this test run
+        overview = {
+            "test": test_name,
+            "dataset": OmegaConf.to_container(cfg.dataset, resolve=True),
+            "test_cfg": test_cfg,
+            "models": [
+                {
+                    "name": m.name,
+                    "module": m.module.__class__.__name__,
+                    "beta": m.beta,
+                    "lr": m.lr,
+                    "lr_inf": m.lr_inf,
+                }
+                for m in models
+            ],
+        }
+        with open(test_dir / "overview.yaml", "w", encoding="utf-8") as f:
+            f.write(OmegaConf.to_yaml(overview))
+
+        # Dispatch via registry
+        metrics[test_name] = run_test_by_name(
+            test_name,
+            models=models,
+            loader=val_loader,
+            cfg=test_cfg,
+            device=device,
+            output_dir=test_dir,
+        )
 
     # Save comprehensive metrics summary
-    summary_path = output_root / "metrics_summary.yaml"
+    summary_path = tests_root / "metrics_summary.yaml"
     with open(summary_path, "w", encoding="utf-8") as fp:
         fp.write(OmegaConf.to_yaml(metrics))
     print(f"[✓] Evaluation complete. Summary written to {summary_path}")

@@ -1,4 +1,7 @@
-"""Analytics helpers for evaluating trained VAE checkpoints."""
+"""Analytics helpers for evaluating trained VAE checkpoints.
+
+Also provides a simple registry so new tasks can be plugged in easily.
+"""
 
 from __future__ import annotations
 
@@ -178,6 +181,28 @@ def add_salt_pepper_noise(x: torch.Tensor, prob: float = 0.4) -> torch.Tensor:
     return x
 
 
+def add_cutout(x: torch.Tensor, size: int = 8, mode: str = "center") -> torch.Tensor:
+    """Mask out a square patch from the image.
+
+    Args:
+        x: Tensor (B,C,H,W)
+        size: side length of the square cutout
+        mode: 'center' for a centered square, 'random' for a random location
+    """
+    b, c, h, w = x.shape
+    size = max(1, min(size, min(h, w)))
+    y = x.clone()
+    if mode == "center":
+        cy, cx = h // 2, w // 2
+        y0 = max(0, cy - size // 2)
+        x0 = max(0, cx - size // 2)
+    else:
+        y0 = int(torch.randint(0, max(1, h - size + 1), (1,)).item())
+        x0 = int(torch.randint(0, max(1, w - size + 1), (1,)).item())
+    y[:, :, y0 : y0 + size, x0 : x0 + size] = 0.0
+    return y
+
+
 def plot_reconstruction_timeline(
     recons: Sequence[torch.Tensor],
     x_true: Optional[torch.Tensor],
@@ -306,11 +331,13 @@ def run_iterative_inference_test(
         }
 
         if save_latent and latent_traj is not None:
+            model_dir = output_dir / "models" / model.name
+            model_dir.mkdir(parents=True, exist_ok=True)
             plot_latent_evolution(
                 decoder=module.decoder,
                 z_traj=latent_traj,
                 x_true=x[:latent_samples].detach().cpu(),
-                save_path=output_dir / f"{model.name}_latent_evolution.png",
+                save_path=model_dir / "latent_evolution.png",
                 num_samples=latent_samples,
                 num_steps_to_show=latent_steps,
             )
@@ -324,6 +351,30 @@ def run_iterative_inference_test(
     return metrics
 
 
+# Simple registry to make adding tests easy
+from typing import Callable as _Callable
+
+TEST_REGISTRY: Dict[str, _Callable[..., Dict[str, object]]] = {
+    "iterative": run_iterative_inference_test,
+    "ood": run_ood_test,
+}
+
+
+def run_test_by_name(
+    name: str,
+    *,
+    models: Sequence[ModelSpec],
+    loader: Iterable[Tuple[torch.Tensor, torch.Tensor]],
+    cfg: Mapping[str, object],
+    device: torch.device,
+    output_dir: Path,
+) -> Dict[str, object]:
+    if name not in TEST_REGISTRY:
+        raise ValueError(f"Unknown test '{name}'. Available: {sorted(TEST_REGISTRY)}")
+    fn = TEST_REGISTRY[name]
+    return fn(models=models, loader=loader, cfg=cfg, device=device, output_dir=output_dir)
+
+
 def _resolve_corruption_fn(name: str, params: Mapping[str, float]) -> Callable[[torch.Tensor], torch.Tensor]:
     if name == "gaussian_blur":
         return lambda x: add_gaussian_blur(
@@ -335,6 +386,12 @@ def _resolve_corruption_fn(name: str, params: Mapping[str, float]) -> Callable[[
         return lambda x: add_white_noise(x, sigma=float(params.get("sigma", 0.6)))
     if name == "salt_pepper":
         return lambda x: add_salt_pepper_noise(x, prob=float(params.get("prob", 0.4)))
+    if name == "cutout":
+        return lambda x: add_cutout(
+            x,
+            size=int(params.get("size", 8)),
+            mode=str(params.get("mode", "center")),
+        )
     if name == "identity":
         return lambda x: x
     raise ValueError(f"Unknown corruption function '{name}'")

@@ -1,9 +1,10 @@
-type: ivae_iterative
-z_dim: 15
-lr: 1e-4
-lr_inf: 1e-2
-svi_steps: 20
-beta: 1.0
-weight_decay: 0.0
-encoder_hidden: [512, 256]
-decoder_hidden: [256, 512]
+# Iterative/semi-amortized VAE (uses inner-loop SVI refinement)
+type: ivae_iterative     # Model key consumed by build_model_from_cfg
+z_dim: 15                # Latent dimension size
+lr: 1e-4                 # Learning rate for model parameters
+lr_inf: 1e-2             # Learning rate for SVI latent refinement
+svi_steps: 20            # Inner-loop SVI iterations per step
+beta: 1.0                # KL weight (beta-VAE)
+weight_decay: 0.0        # L2 regularization weight
+encoder_hidden: [512, 256]  # MLP encoder hidden sizes
+decoder_hidden: [256, 512]  # MLP decoder hidden sizes

@@ -1,8 +1,9 @@
+# Root Hydra config for test/evaluation runs
 defaults:
-  - dataset: mnist
-  - test_settings: default
-  - _self_
+  - dataset: mnist       # Dataset definition used to build the datamodule
+  - test_settings: default  # Suite-specific settings (iterative, ood, etc.)
+  - _self_               # Keep local keys (models, tests) active
 
-models: []
-tests: []
-output_dir: ./analytics
+models: []               # List of model specs: either "name:path" or "path" (name=stem)
+tests: []                # Which tests to run (e.g., [iterative, ood])
+output_dir: ./analytics  # Ignored if using Hydra's run dir; used by legacy paths

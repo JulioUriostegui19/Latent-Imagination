@@ -1,22 +1,25 @@
 iterative:
-  n_examples: 128
-  n_steps: 50
-  lr_factor: 0.1
-  save_latent_traj: true
-  latent_num_samples: 4
-  latent_num_steps: 5
+  n_examples: 128         # Number of validation samples to evaluate
+  n_steps: 50             # SVI refinement steps for the curve
+  lr_factor: 0.1          # Multiplier on model LR for evaluation-time SVI
+  save_latent_traj: true  # Save latent trajectory visualizations
+  latent_num_samples: 4   # How many examples to visualize in latent plots
+  latent_num_steps: 5     # How many time steps to show in plots
 
 ood:
-  n_examples: 64
-  n_steps: 30
-  lr_factor: 0.1
-  timeline_steps: 6
-  corruptions:
-    identity: {}
-    gaussian_blur:
-      kernel_size: 5
-      sigma: 2.0
-    white_noise:
+  n_examples: 64          # Number of samples to use for OOD tests
+  n_steps: 30             # SVI steps to run per corruption
+  lr_factor: 0.1          # Multiplier to set eval LR from train LR
+  timeline_steps: 6       # Steps to display in reconstruction timeline
+  corruptions:            # Input corruptions to evaluate under
+    identity: {}          # No change (baseline)
+    gaussian_blur:        # Apply gaussian blur
+      kernel_size: 5      # Odd kernel size
+      sigma: 2.0          # Blur sigma
+    white_noise:          # Additive Gaussian noise
       sigma: 0.6
-    salt_pepper:
+    salt_pepper:          # Salt & pepper noise
       prob: 0.4
+    cutout:               # Square patch masking
+      size: 8             # Side length of the square to mask
+      mode: center        # 'center' or 'random'

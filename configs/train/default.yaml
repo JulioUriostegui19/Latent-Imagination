@@ -1,11 +1,12 @@
-epochs: 100
-save_dir: ./runs/default
-use_amp: false
-early_stopping: true
-patience: 10
-save_top_k: 3
-grad_clip: 1.0
-monitor_val_loss: true
-deterministic: false
-log_every_n_steps: 50
-use_gpu: true
+# Training loop settings (override via train=default or CLI)
+epochs: 100               # Max number of epochs
+save_dir: ./runs/default  # Base directory for logs/checkpoints
+use_amp: false            # Enable mixed precision (float16)
+early_stopping: true      # Stop training when val loss stops improving
+patience: 10              # Patience epochs for early stopping
+save_top_k: 3             # Keep top-k checkpoints by monitored metric
+grad_clip: 1.0            # Gradient clipping value (0.0 to disable)
+monitor_val_loss: true    # Monitor val/loss for checkpointing/early stop
+deterministic: false      # Deterministic training (slower, reproducible)
+log_every_n_steps: 50     # Logging frequency in training steps
+use_gpu: true             # Use GPU if available

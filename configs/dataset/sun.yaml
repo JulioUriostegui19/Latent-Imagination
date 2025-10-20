@@ -1,9 +1,10 @@
-name: sun
-data_dir: ./data/sun
-batch_size: 128
-num_workers: 4
-pin_memory: true
-val_split: 0.1
-sun_resize: 128
-sun_to_grayscale: false
-split_seed: 42
+# SUN397 dataset settings (override: dataset=sun)
+name: sun                   # Dataset key consumed by the datamodule
+data_dir: ./data/sun        # Root folder for SUN397
+batch_size: 128             # Batch size for train/val/test loaders
+num_workers: 4              # DataLoader workers
+pin_memory: true            # Speedup GPU host-to-device transfers
+val_split: 0.1              # Fraction for validation split (train/val)
+sun_resize: 128             # Resize shorter side to this square size
+sun_to_grayscale: false     # Convert to grayscale (true) or keep RGB (false)
+split_seed: 42              # RNG seed for reproducible split

@@ -1,9 +1,10 @@
-name: mnist
-data_dir: ./data
-batch_size: 256
-num_workers: 4
-pin_memory: true
-val_split: 0.1
-sun_resize: 64
-sun_to_grayscale: true
-split_seed: 42
+# MNIST dataset settings (override: dataset=mnist)
+name: mnist                 # Dataset key consumed by the datamodule
+data_dir: ./data            # Root folder for datasets (downloaded if missing)
+batch_size: 256             # Batch size for train/val/test loaders
+num_workers: 4              # DataLoader workers (set 0 on Windows/Colab if needed)
+pin_memory: true            # Speedup GPU host-to-device transfers
+val_split: 0.1              # For SUN only; ignored by MNIST
+sun_resize: 64              # For SUN only; ignored by MNIST
+sun_to_grayscale: true      # For SUN only; ignored by MNIST
+split_seed: 42              # RNG seed for reproducible SUN splits
