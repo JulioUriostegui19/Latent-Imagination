@@ -31,9 +31,9 @@ Notes:
 - Logs and checkpoints land under `runs/` by default.
 
 ```bash
-# Clone this repository (and my dreams along with it)
-git clone https://github.com/juliouriostegui/cognitive-vae.git
-cd cognitive-vae
+# Clone this repository 
+git clone https://github.com/juliouriostegui/Latent-Imagination.git
+cd Latent-Imagination
 
 # Install dependencies (you'll need these for the magic to happen)
 pip install torch pytorch-lightning torchvision pyyaml tensorboard
