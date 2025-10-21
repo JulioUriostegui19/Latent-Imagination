@@ -1,8 +1,8 @@
-"""CLI utility for quick model visualization using torchinfo and hiddenlayer.
+"""CLI utility for quick model visualization using torchinfo and torchviz.
 
 New usage (config-driven):
   - Point to a model YAML (e.g., configs/model/vae_conv.yaml):
-      python run.py get_model configs/model/vae_conv.yaml --which encoder --tools torchinfo hiddenlayer
+      python run.py get_model configs/model/vae_conv.yaml --which encoder --tools torchinfo torchviz
 
 Notes:
   - The YAML must include a `type` key: one of {vae_conv, vae_mlp, ivae_iterative}.
@@ -41,7 +41,7 @@ def get_mode(
     """Run one or more visualizers on an encoder/decoder with synthetic inputs.
 
     Args:
-      tools: List like ["torchinfo", "tensorboard", "hiddenlayer"].
+      tools: List like ["torchinfo", "tensorboard", "torchviz"].
       model_type: One of {"encoder","decoder"}.
       input_shape: 3 numbers C H W (for decoder this is also the target output shape).
       hidden_dims: Channel schedule for conv stacks.
@@ -129,20 +129,27 @@ def get_mode(
             "TensorBoard support moved. Use dashboard.py --model-overview --tools tensorboard"
         )
 
-    if "hiddenlayer" in toolset:
+    # Support torchviz (and treat 'hiddenlayer' as an alias for backward compatibility)
+    if "torchviz" in toolset or "hiddenlayer" in toolset:
         try:
-            import hiddenlayer as hl
+            from torchviz import make_dot
 
-            graph = hl.build_graph(model, example_input)
-            # Try to save a PNG artifact for quick viewing
-            out_base = os.path.join(log_dir, f"hiddenlayer_{which}")
-            try:
-                graph.save(out_base, format="png")
-                results["hiddenlayer"] = f"{out_base}.png"
-            except Exception as save_exc:  # noqa: BLE001
-                results["hiddenlayer"] = f"graph built (save failed: {save_exc})"
+            # Ensure autograd tracks the graph for visualization
+            ex_inp = example_input.clone().detach().requires_grad_(True)
+            out = model(ex_inp)
+            if isinstance(out, (tuple, list)):
+                out = out[0]
+            dot = make_dot(out, params=dict(model.named_parameters()))
+            out_base = os.path.join(log_dir, f"torchviz_{which}")
+            dot.render(out_base, format="png")
+            results["torchviz"] = f"{out_base}.png"
+            if "hiddenlayer" in toolset and "torchviz" not in toolset:
+                # Note about the implicit aliasing
+                results["note"] = (
+                    "'hiddenlayer' is deprecated here; generated graph with torchviz"
+                )
         except Exception as exc:  # noqa: BLE001
-            results["hiddenlayer"] = f"hiddenlayer graph failed: {exc}"
+            results["torchviz"] = f"torchviz failed: {exc}"
 
     return results
 
@@ -154,7 +161,7 @@ def main():
         "--tools",
         nargs="+",
         default=["torchinfo"],
-        help="One or more tools: torchinfo, hiddenlayer",
+        help="One or more tools: torchinfo, torchviz",
     )
     parser.add_argument(
         "--which",

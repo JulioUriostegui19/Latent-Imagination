@@ -9,7 +9,7 @@ model:
 
 train:
   epochs: 225
-  save_dir: ./runs/vae_conv_mlp
+  save_dir: ./runs/vae_conv
   use_amp: True
   early_stopping: True
   patience: 25
