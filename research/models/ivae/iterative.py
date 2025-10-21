@@ -158,7 +158,9 @@ class IterativeVAE(pl.LightningModule):
         # Get initial amortized estimates from encoder
         mu0, logvar0 = self.encoder(x)
         # Refine latent parameters using SVI optimization (same as training)
-        mu_k, logvar_k, _ = self.svi_infer(x, mu0, logvar0, steps=self.svi_steps)
+        # Lightning disables grad in validation; enable it for SVI refinement.
+        with torch.enable_grad():
+            mu_k, logvar_k, _ = self.svi_infer(x, mu0, logvar0, steps=self.svi_steps)
         # Compute validation loss using refined parameters (no sampling for stability)
         loss_per_sample, x_logit = elbo_per_sample(
             x, self.decoder, mu_k, logvar_k, beta=self.beta, sample_z=False
