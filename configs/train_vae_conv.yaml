@@ -1,0 +1,17 @@
+dataset:
+  name: mnist
+  batch_size: 1024
+  num_workers: 0
+
+model:
+  type: vae_conv                # choices: vae_mlp, vae_conv, ivae_iterative
+  beta: 2.0
+
+train:
+  epochs: 225
+  save_dir: ./runs/vae_conv_mlp
+  use_amp: True
+  early_stopping: True
+  patience: 25
+  save_top_k: 2
+  grad_clip: 1.0 #set to 0.0 to disable for ivae models
