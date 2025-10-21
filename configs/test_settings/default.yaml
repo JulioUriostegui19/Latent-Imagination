@@ -1,10 +1,10 @@
 iterative:
   n_examples: 128         # Number of validation samples to evaluate
-  n_steps: 50             # SVI refinement steps for the curve
+  n_steps: 500             # SVI refinement steps for the curve
   lr_factor: 0.1          # Multiplier on model LR for evaluation-time SVI
   save_latent_traj: true  # Save latent trajectory visualizations
   latent_num_samples: 4   # How many examples to visualize in latent plots
-  latent_num_steps: 5     # How many time steps to show in plots
+  latent_num_steps: 3     # How many time steps to show in plots
 
 ood:
   n_examples: 64          # Number of samples to use for OOD tests

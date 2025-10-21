@@ -5,11 +5,12 @@ dataset:
 
 model:
   type: ivae_iterative                # choices: vae_mlp, vae_conv, ivae_iterative
+  arch: conv                    # Force CNN backbone (ConvEncoder/ConvDecoder)
   beta: 2.0
 
 train:
   epochs: 220
-  save_dir: ./runs/ivae_iterative_mlp
+  save_dir: ./runs/ivae_conv
   use_amp: True
   early_stopping: True
   patience: 10
