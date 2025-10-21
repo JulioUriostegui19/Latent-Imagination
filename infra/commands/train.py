@@ -61,6 +61,48 @@ def _maybe_load_init_weights(module: BaseVAE | IterativeVAE, init_path: str) -> 
         module.decoder.load_state_dict(dec_state, strict=False)
 
 
+def _infer_ivae_architecture(mcfg: Mapping) -> str:
+    """Infer IVAEs encoder/decoder backbone: 'mlp' or 'conv'.
+
+    Precedence:
+      1) Explicit hint in config: mcfg['arch'] in {'mlp','conv'}
+      2) Presence of architecture-specific keys in config
+         - encoder_hidden/decoder_hidden -> mlp
+         - conv_hidden/deconv_hidden     -> conv
+      3) Inspect init_weights checkpoint parameter names
+         - any 'encoder.fc1' or 'decoder.fc1' -> mlp
+         - any 'encoder.conv' or 'decoder.net' -> conv
+      4) Default: mlp
+    """
+    # 1) Direct hint
+    arch = str(mcfg.get("arch", "")).lower()
+    if arch in {"mlp", "conv"}:
+        return arch
+
+    # 2) Config keys
+    if ("encoder_hidden" in mcfg) or ("decoder_hidden" in mcfg):
+        return "mlp"
+    if ("conv_hidden" in mcfg) or ("deconv_hidden" in mcfg):
+        return "conv"
+
+    # 3) Peek at checkpoint
+    init_path = mcfg.get("init_weights")
+    if init_path:
+        try:
+            ckpt = torch.load(to_absolute_path(init_path), map_location="cpu")
+            state = ckpt.get("state_dict", ckpt) if isinstance(ckpt, dict) else {}
+            names = list(state.keys()) if isinstance(state, dict) else []
+            if any(n.startswith("encoder.fc1") or n.startswith("decoder.fc1") for n in names):
+                return "mlp"
+            if any(n.startswith("encoder.conv") or n.startswith("decoder.net") for n in names):
+                return "conv"
+        except Exception:
+            pass
+
+    # 4) Fallback
+    return "mlp"
+
+
 def build_model_from_cfg(model_cfg: Mapping, input_shape):  # Factory function to create models from configuration
     """Instantiate the requested model class with hyperparameters from the config."""
     # Hydrated OmegaConf mapping passed in; use regular dict access for ergonomics.
@@ -112,25 +154,35 @@ def build_model_from_cfg(model_cfg: Mapping, input_shape):  # Factory function t
             weight_decay=mcfg.get("weight_decay", 0.0),
         )
     elif mcfg["type"] == "ivae_iterative":  # Iterative VAE with SVI refinement
-        enc_hidden = mcfg.get("encoder_hidden", [512, 256])
-        dec_hidden = mcfg.get("decoder_hidden", list(reversed(enc_hidden)))
-        enc_h1, enc_h2 = _hidden_pair(enc_hidden)  # Extract encoder hidden dimensions
-        dec_h1, dec_h2 = _hidden_pair(dec_hidden)  # Extract decoder hidden dimensions
-        encoder = MLPEncoder(  # Create MLP encoder for iterative VAE
-            input_shape=input_shape,
-            input_dim=input_dim,
-            h1=enc_h1,
-            h2=enc_h2,
-            z_dim=z_dim,
-        )
-        decoder = MLPDecoder(  # Create MLP decoder for iterative VAE
-            output_shape=input_shape,
-            output_dim=input_dim,
-            h1=dec_h1,
-            h2=dec_h2,
-            z_dim=z_dim,
-        )
-        model = IterativeVAE(  # Create iterative VAE with SVI capabilities
+        arch = _infer_ivae_architecture(mcfg)
+        if arch == "conv":
+            # Convolutional IVAEs
+            enc_hidden = tuple(mcfg.get("conv_hidden", [32, 64]))
+            dec_hidden = tuple(mcfg.get("deconv_hidden", list(reversed(enc_hidden))))
+            encoder = ConvEncoder(input_shape=input_shape, hidden_dims=enc_hidden, z_dim=z_dim)
+            decoder = ConvDecoder(output_shape=input_shape, hidden_dims=dec_hidden, z_dim=z_dim)
+        else:
+            # MLP IVAEs (default)
+            enc_hidden = mcfg.get("encoder_hidden", [512, 256])
+            dec_hidden = mcfg.get("decoder_hidden", list(reversed(enc_hidden)))
+            enc_h1, enc_h2 = _hidden_pair(enc_hidden)
+            dec_h1, dec_h2 = _hidden_pair(dec_hidden)
+            encoder = MLPEncoder(
+                input_shape=input_shape,
+                input_dim=input_dim,
+                h1=enc_h1,
+                h2=enc_h2,
+                z_dim=z_dim,
+            )
+            decoder = MLPDecoder(
+                output_shape=input_shape,
+                output_dim=input_dim,
+                h1=dec_h1,
+                h2=dec_h2,
+                z_dim=z_dim,
+            )
+
+        model = IterativeVAE(
             encoder,
             decoder,
             input_shape=input_shape,

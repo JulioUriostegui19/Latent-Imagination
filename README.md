@@ -41,6 +41,38 @@ python get_cfg.py --test
 python get_model.py --tools torchinfo --model-type encoder --input-shape 1 28 28 --hidden-dims 32 64 --z-dim 32
 ```
 
+## IVAEs with MLP or CNN backbones
+
+The iterative VAE (`ivae_iterative`) now supports both MLP and CNN encoders/decoders. The architecture can be selected explicitly via config, or inferred from a checkpoint when provided.
+
+- Explicit selection via config:
+  - MLP (default): provide `encoder_hidden`/`decoder_hidden` in the model YAML.
+  - CNN: set `arch: conv` and provide `conv_hidden`/`deconv_hidden` channel schedules.
+
+- Automatic inference from checkpoint (`model.init_weights`):
+  - If a checkpoint is specified, `infra/commands/train.py` inspects parameter names to choose the backbone:
+    - Keys like `encoder.fc1` or `decoder.fc1` → MLP
+    - Keys like `encoder.conv` or `decoder.net` → CNN
+  - Hidden sizes are still taken from the YAML when present; checkpoint inference only determines the backbone type.
+
+Examples
+- MLP IVAEs (existing config):
+  - `python run.py train -cn train_ivae_mlp`
+
+- CNN IVAEs (by config): add to your IVAEs model YAML:
+  - `arch: conv`
+  - `conv_hidden: [32, 64]`
+  - `deconv_hidden: [64, 32]`
+
+- CNN IVAEs (inferred from checkpoint): set in the model YAML:
+  - `init_weights: path/to/conv_vae.ckpt`
+  - Omit `arch` to let the loader detect CNN.
+
+Artifacts and graph visualization
+- Use `get_model` to preview architectures:
+  - `python run.py get_model configs/model/vae_conv.yaml --which encoder --tools torchinfo torchviz`
+- `hiddenlayer` is deprecated here; requests for it are redirected to `torchviz` and saved under `runs/<which>_visuals/torchviz_<which>.png`.
+
 ## 🧬 The Science Behind the Magic
 
 ### The Big Idea
