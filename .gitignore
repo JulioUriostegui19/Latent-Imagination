@@ -2,6 +2,7 @@
 #CLAUDE.md
 .claude
 docs/
+runs/
 
 # Python cache and compiled files
 __pycache__/

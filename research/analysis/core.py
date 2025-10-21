@@ -17,7 +17,14 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms.functional as TF
 
-from research.models import BaseVAE, IterativeVAE, ConvDecoder, ConvEncoder, MLPDecoder, MLPEncoder
+from research.models import (
+    BaseVAE,
+    IterativeVAE,
+    ConvDecoder,
+    ConvEncoder,
+    MLPDecoder,
+    MLPEncoder,
+)
 from research.tools.losses import elbo_per_sample
 
 
@@ -165,7 +172,9 @@ def add_white_noise(x: torch.Tensor, sigma: float = 0.6) -> torch.Tensor:
     return torch.clamp(x + noise, 0.0, 1.0)
 
 
-def add_gaussian_blur(x: torch.Tensor, kernel_size: int = 5, sigma: float = 2.0) -> torch.Tensor:
+def add_gaussian_blur(
+    x: torch.Tensor, kernel_size: int = 5, sigma: float = 2.0
+) -> torch.Tensor:
     """Apply Gaussian blur using torchvision utilities."""
     if kernel_size % 2 == 0:
         kernel_size += 1  # ensure odd
@@ -351,52 +360,6 @@ def run_iterative_inference_test(
     return metrics
 
 
-# Simple registry to make adding tests easy
-from typing import Callable as _Callable
-
-TEST_REGISTRY: Dict[str, _Callable[..., Dict[str, object]]] = {
-    "iterative": run_iterative_inference_test,
-    "ood": run_ood_test,
-}
-
-
-def run_test_by_name(
-    name: str,
-    *,
-    models: Sequence[ModelSpec],
-    loader: Iterable[Tuple[torch.Tensor, torch.Tensor]],
-    cfg: Mapping[str, object],
-    device: torch.device,
-    output_dir: Path,
-) -> Dict[str, object]:
-    if name not in TEST_REGISTRY:
-        raise ValueError(f"Unknown test '{name}'. Available: {sorted(TEST_REGISTRY)}")
-    fn = TEST_REGISTRY[name]
-    return fn(models=models, loader=loader, cfg=cfg, device=device, output_dir=output_dir)
-
-
-def _resolve_corruption_fn(name: str, params: Mapping[str, float]) -> Callable[[torch.Tensor], torch.Tensor]:
-    if name == "gaussian_blur":
-        return lambda x: add_gaussian_blur(
-            x,
-            kernel_size=int(params.get("kernel_size", 5)),
-            sigma=float(params.get("sigma", 2.0)),
-        )
-    if name == "white_noise":
-        return lambda x: add_white_noise(x, sigma=float(params.get("sigma", 0.6)))
-    if name == "salt_pepper":
-        return lambda x: add_salt_pepper_noise(x, prob=float(params.get("prob", 0.4)))
-    if name == "cutout":
-        return lambda x: add_cutout(
-            x,
-            size=int(params.get("size", 8)),
-            mode=str(params.get("mode", "center")),
-        )
-    if name == "identity":
-        return lambda x: x
-    raise ValueError(f"Unknown corruption function '{name}'")
-
-
 def run_ood_test(
     models: Sequence[ModelSpec],
     loader: Iterable[Tuple[torch.Tensor, torch.Tensor]],
@@ -440,7 +403,9 @@ def run_ood_test(
                 recon = torch.sigmoid(recon_logits)
             _, baseline = recon_mse(recon, x_corr)
 
-            lr_eval = lr_factor * (model.lr_inf if model.lr_inf is not None else model.lr)
+            lr_eval = lr_factor * (
+                model.lr_inf if model.lr_inf is not None else model.lr
+            )
             curve, recons, _ = iterative_recon_mse(
                 module.encoder,
                 module.decoder,
@@ -473,3 +438,53 @@ def run_ood_test(
         save_path=output_dir / "ood_reconstruction_mse.png",
     )
     return metrics
+
+
+# Simple registry to make adding tests easy
+from typing import Callable as _Callable
+
+TEST_REGISTRY: Dict[str, _Callable[..., Dict[str, object]]] = {
+    "iterative": run_iterative_inference_test,
+    "ood": run_ood_test,
+}
+
+
+def run_test_by_name(
+    name: str,
+    *,
+    models: Sequence[ModelSpec],
+    loader: Iterable[Tuple[torch.Tensor, torch.Tensor]],
+    cfg: Mapping[str, object],
+    device: torch.device,
+    output_dir: Path,
+) -> Dict[str, object]:
+    if name not in TEST_REGISTRY:
+        raise ValueError(f"Unknown test '{name}'. Available: {sorted(TEST_REGISTRY)}")
+    fn = TEST_REGISTRY[name]
+    return fn(
+        models=models, loader=loader, cfg=cfg, device=device, output_dir=output_dir
+    )
+
+
+def _resolve_corruption_fn(
+    name: str, params: Mapping[str, float]
+) -> Callable[[torch.Tensor], torch.Tensor]:
+    if name == "gaussian_blur":
+        return lambda x: add_gaussian_blur(
+            x,
+            kernel_size=int(params.get("kernel_size", 5)),
+            sigma=float(params.get("sigma", 2.0)),
+        )
+    if name == "white_noise":
+        return lambda x: add_white_noise(x, sigma=float(params.get("sigma", 0.6)))
+    if name == "salt_pepper":
+        return lambda x: add_salt_pepper_noise(x, prob=float(params.get("prob", 0.4)))
+    if name == "cutout":
+        return lambda x: add_cutout(
+            x,
+            size=int(params.get("size", 8)),
+            mode=str(params.get("mode", "center")),
+        )
+    if name == "identity":
+        return lambda x: x
+    raise ValueError(f"Unknown corruption function '{name}'")
