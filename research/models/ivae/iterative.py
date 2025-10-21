@@ -63,7 +63,20 @@ class IterativeVAE(pl.LightningModule):
             loss_per_sample, _ = elbo_per_sample(
                 x, self.decoder, mu, logvar, beta=self.beta
             )
+            # Debug: show per-sample loss shape and dtype during SVI
+            try:
+                if self.training:
+                    print(
+                        f"[SVI] loss_per_sample: shape={tuple(loss_per_sample.shape)} dtype={loss_per_sample.dtype}"
+                    )
+            except Exception:
+                pass
             loss = loss_per_sample.mean()
+            try:
+                if self.training:
+                    print(f"[SVI] loss (mean): shape={tuple(loss.shape)} dtype={loss.dtype}")
+            except Exception:
+                pass
             # Compute gradients of ELBO with respect to latent parameters
             grads = torch.autograd.grad(loss, [mu, logvar], retain_graph=False)
             with torch.no_grad():
@@ -94,7 +107,18 @@ class IterativeVAE(pl.LightningModule):
         loss_dec_per_sample, _ = elbo_per_sample(
             x, self.decoder, mu_k.detach(), logvar_k.detach(), beta=self.beta
         )
+        # Debug: decoder loss shapes/dtypes
+        try:
+            print(
+                f"[Train] loss_dec_per_sample: shape={tuple(loss_dec_per_sample.shape)} dtype={loss_dec_per_sample.dtype}"
+            )
+        except Exception:
+            pass
         loss_dec = loss_dec_per_sample.mean()
+        try:
+            print(f"[Train] loss_dec (mean): shape={tuple(loss_dec.shape)} dtype={loss_dec.dtype}")
+        except Exception:
+            pass
         self.manual_backward(loss_dec)  # Compute gradients for decoder
         opt_dec.step()  # Update decoder parameters
 
@@ -103,7 +127,18 @@ class IterativeVAE(pl.LightningModule):
         loss_enc_per_sample, _ = elbo_per_sample(
             x, self.decoder, mu0, logvar0, beta=self.beta
         )
+        # Debug: encoder loss shapes/dtypes
+        try:
+            print(
+                f"[Train] loss_enc_per_sample: shape={tuple(loss_enc_per_sample.shape)} dtype={loss_enc_per_sample.dtype}"
+            )
+        except Exception:
+            pass
         loss_enc = loss_enc_per_sample.mean()
+        try:
+            print(f"[Train] loss_enc (mean): shape={tuple(loss_enc.shape)} dtype={loss_enc.dtype}")
+        except Exception:
+            pass
         self.manual_backward(loss_enc)  # Compute gradients for encoder
         opt_enc.step()  # Update encoder parameters
 
@@ -128,7 +163,18 @@ class IterativeVAE(pl.LightningModule):
         loss_per_sample, x_logit = elbo_per_sample(
             x, self.decoder, mu_k, logvar_k, beta=self.beta, sample_z=False
         )
+        # Debug: validation loss shapes/dtypes
+        try:
+            print(
+                f"[Val] loss_per_sample: shape={tuple(loss_per_sample.shape)} dtype={loss_per_sample.dtype}"
+            )
+        except Exception:
+            pass
         loss = loss_per_sample.mean()
+        try:
+            print(f"[Val] loss (mean): shape={tuple(loss.shape)} dtype={loss.dtype}")
+        except Exception:
+            pass
         # Log validation loss to TensorBoard/CSV with progress bar visibility
         self.log("val/loss", loss, on_epoch=True, prog_bar=True)
         # Return loss for validation epoch end aggregation
