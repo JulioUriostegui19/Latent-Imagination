@@ -7,6 +7,7 @@ model:
   type: ivae_iterative                # choices: vae_mlp, vae_conv, ivae_iterative
   arch: conv                    # Force CNN backbone (ConvEncoder/ConvDecoder)
   beta: 2.0
+  init_weightss: null               # Optional path to a pretrained VAE checkpoint to initialise from
 
 train:
   epochs: 220
