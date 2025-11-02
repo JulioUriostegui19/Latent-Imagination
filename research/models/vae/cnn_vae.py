@@ -80,11 +80,14 @@ class ConvDecoder(nn.Module):
             modules.append(nn.ReLU())
             channels = h_dim
         modules.append(nn.ConvTranspose2d(channels, c, kernel_size=4, stride=2, padding=1))  # Final output layer
+        # Define output activation as a layer in the sequence
+        modules.append(nn.Tanh())
         self.net = nn.Sequential(*modules)
 
     def forward(self, z: torch.Tensor):
         h = self.fc(z)
-        return self.net(h)
+        x = self.net(h)
+        return x
 
 
     

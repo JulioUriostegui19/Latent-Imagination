@@ -56,12 +56,18 @@ class GenericImageDataModule(pl.LightningDataModule):
         """Assemble torchvision transforms specific to the chosen dataset."""
         # Build appropriate transform pipeline based on dataset
         if self.name == "mnist":
-            return T.Compose([T.ToTensor()])  # MNIST: just convert to tensor (already normalized)
+            # Normalize to [-1, 1] via mean=0.5, std=0.5 after ToTensor() yields [0,1]
+            return T.Compose([T.ToTensor(), T.Normalize((0.5,), (0.5,))])
         if self.name == "sun":
             transforms = [T.Resize((self.sun_resize, self.sun_resize))]  # SUN: resize to square
             if self.sun_to_grayscale:
                 transforms.append(T.Grayscale())  # Optionally convert to grayscale
-            transforms.append(T.ToTensor())  # Convert to tensor
+            transforms.append(T.ToTensor())  # Convert to tensor [0,1]
+            # Normalize to [-1, 1]
+            if self.sun_to_grayscale:
+                transforms.append(T.Normalize((0.5,), (0.5,)))
+            else:
+                transforms.append(T.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)))
             return T.Compose(transforms)
         raise ValueError(f"Unknown dataset {self.name}")
 

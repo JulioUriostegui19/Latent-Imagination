@@ -29,8 +29,7 @@ from research.tools.losses import elbo_per_sample
 
 
 def recon_mse(recon: torch.Tensor, target: torch.Tensor) -> Tuple[np.ndarray, float]:
-    """Return per-sample and mean MSE between reconstructions and ground truth."""
-    # Compute pixel-wise MSE without reduction so we can aggregate by sample.
+    """Return per-sample and mean MSE between recons and ground truth in [-1,1]."""
     mse_per_sample = (
         F.mse_loss(recon, target, reduction="none").view(recon.size(0), -1).mean(dim=1)
     )
@@ -62,11 +61,13 @@ def iterative_recon_mse(
     recons: List[torch.Tensor] = []
     z_traj: List[torch.Tensor] = []
 
+    def _to01(x: torch.Tensor) -> torch.Tensor:
+        return torch.clamp((x + 1.0) / 2.0, 0.0, 1.0)
+
     def record_state():
         """Record current reconstruction + metric (and optionally latent state)."""
         with torch.no_grad():
-            x_logit = decoder(mu)
-            x_recon = torch.sigmoid(x_logit)
+            x_recon = decoder(mu)
         recons.append(x_recon.detach().cpu())
         _, mean_mse = recon_mse(x_recon, x)
         mses.append(mean_mse)
@@ -150,13 +151,15 @@ def plot_latent_evolution(
         for col, step in enumerate(step_indices):
             z = z_traj[step, i].unsqueeze(0).to(device)
             with torch.no_grad():
-                recon = torch.sigmoid(decoder(z)).cpu()
-            axes[i, col].imshow(recon[0].squeeze(), cmap="gray", vmin=0, vmax=1)
+                recon = decoder(z).cpu()
+            img = torch.clamp((recon[0] + 1.0) / 2.0, 0.0, 1.0)
+            axes[i, col].imshow(img.squeeze(), cmap="gray", vmin=0, vmax=1)
             axes[i, col].axis("off")
             if i == 0:
                 axes[i, col].set_title(f"iter {step}")
         if x_true is not None:
-            axes[i, -1].imshow(x_true[i].cpu().squeeze(), cmap="gray", vmin=0, vmax=1)
+            img = torch.clamp((x_true[i].cpu() + 1.0) / 2.0, 0.0, 1.0)
+            axes[i, -1].imshow(img.squeeze(), cmap="gray", vmin=0, vmax=1)
             axes[i, -1].axis("off")
             if i == 0:
                 axes[i, -1].set_title("target")
@@ -167,25 +170,25 @@ def plot_latent_evolution(
 
 
 def add_white_noise(x: torch.Tensor, sigma: float = 0.6) -> torch.Tensor:
-    """Add i.i.d. Gaussian noise to a tensor in [0, 1]."""
+    """Add i.i.d. Gaussian noise to a tensor in [-1, 1] and clamp to range."""
     noise = torch.randn_like(x) * sigma
-    return torch.clamp(x + noise, 0.0, 1.0)
+    return torch.clamp(x + noise, -1.0, 1.0)
 
 
 def add_gaussian_blur(
     x: torch.Tensor, kernel_size: int = 5, sigma: float = 2.0
 ) -> torch.Tensor:
-    """Apply Gaussian blur using torchvision utilities."""
+    """Apply Gaussian blur. Works directly on [-1,1] values."""
     if kernel_size % 2 == 0:
         kernel_size += 1  # ensure odd
     return TF.gaussian_blur(x, kernel_size=(kernel_size, kernel_size), sigma=sigma)
 
 
 def add_salt_pepper_noise(x: torch.Tensor, prob: float = 0.4) -> torch.Tensor:
-    """Randomly set pixels to 0 or 1 with probability prob/2 each."""
+    """Randomly set pixels to -1 or +1 with probability prob/2 each."""
     rnd = torch.rand_like(x)
     x = x.clone()
-    x[rnd < (prob / 2)] = 0.0
+    x[rnd < (prob / 2)] = -1.0
     x[rnd > 1 - (prob / 2)] = 1.0
     return x
 
@@ -208,7 +211,7 @@ def add_cutout(x: torch.Tensor, size: int = 8, mode: str = "center") -> torch.Te
     else:
         y0 = int(torch.randint(0, max(1, h - size + 1), (1,)).item())
         x0 = int(torch.randint(0, max(1, w - size + 1), (1,)).item())
-    y[:, :, y0 : y0 + size, x0 : x0 + size] = 0.0
+    y[:, :, y0 : y0 + size, x0 : x0 + size] = -1.0
     return y
 
 
@@ -228,17 +231,20 @@ def plot_reconstruction_timeline(
     fig, axes = plt.subplots(1, cols, figsize=(2.5 * cols, 3))
 
     axes = np.atleast_1d(axes)
-    axes[0].imshow(x_corr.squeeze().cpu(), cmap="gray", vmin=0, vmax=1)
+    img_corr = torch.clamp((x_corr.squeeze().cpu() + 1.0) / 2.0, 0.0, 1.0)
+    axes[0].imshow(img_corr, cmap="gray", vmin=0, vmax=1)
     axes[0].set_title("corrupted")
     axes[0].axis("off")
 
     for idx, step in enumerate(indices):
-        axes[idx + 1].imshow(recons[step].squeeze().cpu(), cmap="gray", vmin=0, vmax=1)
+        img = torch.clamp((recons[step].squeeze().cpu() + 1.0) / 2.0, 0.0, 1.0)
+        axes[idx + 1].imshow(img, cmap="gray", vmin=0, vmax=1)
         axes[idx + 1].set_title(f"iter {step}")
         axes[idx + 1].axis("off")
 
     if x_true is not None:
-        axes[-1].imshow(x_true.squeeze().cpu(), cmap="gray", vmin=0, vmax=1)
+        img_true = torch.clamp((x_true.squeeze().cpu() + 1.0) / 2.0, 0.0, 1.0)
+        axes[-1].imshow(img_true, cmap="gray", vmin=0, vmax=1)
         axes[-1].set_title("target")
         axes[-1].axis("off")
 
@@ -317,8 +323,7 @@ def run_iterative_inference_test(
         module = model.module.to(device)
         module.eval()
         with torch.no_grad():
-            x_logit, _, _ = module(x)
-            x_recon = torch.sigmoid(x_logit)
+            x_recon, _, _ = module(x)
         _, baseline_mse = recon_mse(x_recon, x)
         baselines[model.name] = baseline_mse
 
@@ -399,8 +404,7 @@ def run_ood_test(
             module = model.module.to(device)
             module.eval()
             with torch.no_grad():
-                recon_logits, _, _ = module(x_corr)
-                recon = torch.sigmoid(recon_logits)
+                recon, _, _ = module(x_corr)
             _, baseline = recon_mse(recon, x_corr)
 
             lr_eval = lr_factor * (

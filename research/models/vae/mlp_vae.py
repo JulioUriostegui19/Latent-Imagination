@@ -25,7 +25,9 @@ class MLPEncoder(nn.Module):
     ):
         super().__init__()
         self.input_shape = input_shape
-        self.input_dim = input_dim or _prod(input_shape)  # Calculate flattened input size
+        self.input_dim = input_dim or _prod(
+            input_shape
+        )  # Calculate flattened input size
         self.fc1 = nn.Linear(self.input_dim, h1)  # First hidden layer
         self.fc2 = nn.Linear(h1, h2)  # Second hidden layer
         self.fc_mu = nn.Linear(h2, z_dim)  # Mean of latent distribution
@@ -55,14 +57,20 @@ class MLPDecoder(nn.Module):
     ):
         super().__init__()
         self.output_shape = output_shape
-        self.output_dim = output_dim or _prod(output_shape)  # Calculate flattened output size
+        self.output_dim = output_dim or _prod(
+            output_shape
+        )  # Calculate flattened output size
         self.fc1 = nn.Linear(z_dim, h1)  # First hidden layer
         self.fc2 = nn.Linear(h1, h2)  # Second hidden layer
-        self.fc_out = nn.Linear(h2, self.output_dim)  # Output layer
-        self.act = torch.tanh  # Activation function
+        self.fc_out = nn.Linear(h2, self.output_dim)  # Output pre-activation
+        self.act = torch.relu  # Hidden activation function
+        # Define output activation as a layer
+        self.out_act = nn.Tanh()
 
     def forward(self, z: torch.Tensor):
         h = self.act(self.fc1(z))  # First hidden layer with activation
         h = self.act(self.fc2(h))  # Second hidden layer with activation
-        x_logit = self.fc_out(h)  # Output logits
-        return x_logit.view(z.size(0), *self.output_shape)  # Reshape to original image dimensions
+        x = self.fc_out(h)
+        # Apply output activation defined in __init__
+        x = self.out_act(x)
+        return x.view(z.size(0), *self.output_shape)

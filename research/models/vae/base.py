@@ -6,7 +6,7 @@ import torch.nn as nn
 import pytorch_lightning as pl
 
 # Import custom loss functions for VAE training from utils module
-from research.tools.losses import elbo_per_sample, gaussian_kl, reconstruction_bce_logits
+from research.tools.losses import elbo_per_sample, gaussian_kl
 
 
 class BaseVAE(pl.LightningModule):
@@ -41,7 +41,10 @@ class BaseVAE(pl.LightningModule):
         self.weight_decay = weight_decay  # Store weight decay parameter
 
     def forward(self, x: torch.Tensor):
-        """Sample latent z via reparameterisation and decode to logits."""
+        """Sample latent z via reparameterisation and decode to reconstruction.
+
+        Decoder outputs are in [-1, 1] (tanh activation).
+        """
         # Pass input through encoder to get latent distribution parameters
         mu, logvar = self.encoder(x)
         # Convert log variance to standard deviation for reparameterization
@@ -51,16 +54,16 @@ class BaseVAE(pl.LightningModule):
         # Apply reparameterization trick: z = mu + sigma * epsilon
         z = mu + eps * std
         # Decode latent sample back to reconstructed input logits
-        x_logit = self.decoder(z)
+        x_recon = self.decoder(z)
         # Return reconstruction and latent parameters for loss computation
-        return x_logit, mu, logvar
+        return x_recon, mu, logvar
 
     def training_step(self, batch, batch_idx):
         """Optimise ELBO (reconstruction + KL) on a mini-batch."""
         # Extract input data from batch tuple (ignore labels)
         x, _ = batch
         # Compute ELBO loss per sample using the custom loss function
-        loss_per_sample, x_logit = elbo_per_sample(
+        loss_per_sample, x_recon = elbo_per_sample(
             x, self.decoder, *self.encoder(x), beta=self.beta
         )
         # Average loss across the mini-batch
@@ -69,11 +72,9 @@ class BaseVAE(pl.LightningModule):
         self.log("train/loss", loss, on_step=False, on_epoch=True, prog_bar=True)
         # Compute and log KL divergence component for monitoring
         kl = gaussian_kl(*self.encoder(x)).mean()
-        # Compute and log reconstruction loss component for monitoring
-        rec = reconstruction_bce_logits(x, x_logit).mean()
         # Log individual loss components for analysis
         self.log("train/kl", kl, on_epoch=True)
-        self.log("train/rec", rec, on_epoch=True)
+        # Optional: log MSE recon directly from loss components if needed
         # Return loss for backpropagation
         return loss
 
@@ -82,7 +83,7 @@ class BaseVAE(pl.LightningModule):
         # Extract input data from batch tuple (ignore labels)
         x, _ = batch
         # Compute validation loss without sampling noise (sample_z=False)
-        loss_per_sample, x_logit = elbo_per_sample(
+        loss_per_sample, x_recon = elbo_per_sample(
             x, self.decoder, *self.encoder(x), beta=self.beta, sample_z=False
         )
         # Average loss across the validation batch

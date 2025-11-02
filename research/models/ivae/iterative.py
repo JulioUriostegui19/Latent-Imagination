@@ -59,7 +59,7 @@ class IterativeVAE(pl.LightningModule):
         traj = []  # List to store optimization trajectory for analysis
         # Perform gradient-based optimization on latent parameters
         for _ in range(steps):
-            # Compute ELBO loss using current latent parameters
+            # Compute per-sample ELBO loss (shape: [B]) using current latent parameters
             loss_per_sample, _ = elbo_per_sample(
                 x, self.decoder, mu, logvar, beta=self.beta
             )
@@ -71,18 +71,23 @@ class IterativeVAE(pl.LightningModule):
                     )
             except Exception:
                 pass
-            loss = loss_per_sample.mean()
+            # Optional mean for readable logging; do NOT use it for grads to avoid 1/B scaling
+            loss_mean = loss_per_sample.mean()
             try:
                 if self.training:
-                    print(f"[SVI] loss (mean): shape={tuple(loss.shape)} dtype={loss.dtype}")
+                    print(
+                        f"[SVI] loss (mean, log-only): shape={tuple(loss_mean.shape)} dtype={loss_mean.dtype}"
+                    )
             except Exception:
                 pass
-            # Compute gradients of ELBO with respect to latent parameters
-            grads = torch.autograd.grad(loss, [mu, logvar], retain_graph=False)
+            # Compute gradients per-sample in a vectorized way via sum (no batch-size scaling)
+            grad_mu, grad_logvar = torch.autograd.grad(
+                loss_per_sample.sum(), [mu, logvar], retain_graph=False
+            )
             with torch.no_grad():
-                # Gradient descent step on latent statistics (mu and logvar).
-                mu = mu - self.lr_inf * grads[0]
-                logvar = logvar - self.lr_inf * grads[1]
+                # Independent per-sample gradient descent steps on latent statistics
+                mu = mu - self.lr_inf * grad_mu
+                logvar = logvar - self.lr_inf * grad_logvar
                 # Re-enable gradients for next iteration
                 mu.requires_grad_()
                 logvar.requires_grad_()
@@ -162,7 +167,7 @@ class IterativeVAE(pl.LightningModule):
         with torch.enable_grad():
             mu_k, logvar_k, _ = self.svi_infer(x, mu0, logvar0, steps=self.svi_steps)
         # Compute validation loss using refined parameters (no sampling for stability)
-        loss_per_sample, x_logit = elbo_per_sample(
+        loss_per_sample, x_recon = elbo_per_sample(
             x, self.decoder, mu_k, logvar_k, beta=self.beta, sample_z=False
         )
         # Debug: validation loss shapes/dtypes
