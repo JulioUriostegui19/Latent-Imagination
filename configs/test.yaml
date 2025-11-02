@@ -4,6 +4,45 @@ defaults:
   - test_settings: default  # Suite-specific settings (iterative, ood, etc.)
   - _self_               # Keep local keys (models, tests) active
 
-models: []               # List of model specs: either "name:path" or "path" (name=stem)
+pythonpath: []           # Optional list of extra paths to add to sys.path for imports
+
+# List of models to evaluate. Two supported formats:
+#  1) Backward-compatible: strings
+#     models: ["baseline:runs/checkpoint.ckpt", "runs/other.ckpt"]
+#
+#  2) Structured entries (recommended for external repos):
+#     models:
+#       - name: cnnvae
+#         # Option A: LightningModule class + .ckpt
+#         class: external_repo.cnnvae.module:CNNVAE
+#         checkpoint:
+#           path: ./weights/cnnvae.ckpt
+#           format: ckpt           # auto|ckpt|pth (auto tries best guess)
+#           # state_dict_key: state_dict
+#           # strip_prefixes: ["model.", "module."]
+#           # strict: false
+#
+#       - name: my_ivae
+#         # Option B: Build from Encoder/Decoder classes and wrap into our VAEs
+#         encoder: external_repo.arch.enc:Encoder
+#         decoder: external_repo.arch.dec:Decoder
+#         encoder_init:
+#           input_shape: [1, 28, 28]
+#           z_dim: 32
+#         decoder_init:
+#           output_shape: [1, 28, 28]
+#           z_dim: 32
+#         algorithm: iterative      # base | iterative
+#         algorithm_params:
+#           lr_model: 0.0003
+#           lr_inf: 0.01
+#           svi_steps: 20
+#           beta: 1.0
+#           weight_decay: 0.0
+#         checkpoint:
+#           path: ./weights/my_ivae.pth
+#           format: pth
+
+models: []               # See formats above
 tests: []                # Which tests to run (e.g., [iterative, ood])
 output_dir: ./analytics  # Ignored if using Hydra's run dir; used by legacy paths
