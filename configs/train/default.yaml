@@ -3,8 +3,8 @@ epochs: 225               # Max number of epochs
 save_dir: ./runs/default  # Base directory for logs/checkpoints
 use_amp: false            # Enable mixed precision (float16)
 early_stopping: true      # Stop training when val loss stops improving
-patience: 10              # Patience epochs for early stopping
-save_top_k: 2             # Keep top-k checkpoints by monitored metric
+patience: 25              # Patience epochs for early stopping
+save_top_k: 5             # Keep top-k checkpoints by monitored metric
 grad_clip: 1.0            # Gradient clipping value (0.0 to disable)
 monitor_val_loss: true    # Monitor val/loss for checkpointing/early stop
 deterministic: false      # Deterministic training (slower, reproducible)

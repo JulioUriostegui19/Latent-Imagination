@@ -5,13 +5,13 @@ dataset:
 
 model:
   type: vae_conv                # choices: vae_mlp, vae_conv, ivae_iterative
-  beta: 2.0
+  beta: 0.0025
 
 train:
   epochs: 225
   save_dir: ./runs/vae_conv
   use_amp: True
   early_stopping: True
-  patience: 25
-  save_top_k: 2
+  patience: 30
+  save_top_k: 3 
   grad_clip: 1.0 #set to 0.0 to disable for ivae models
