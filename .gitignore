@@ -5,6 +5,7 @@ docs/
 runs/
 tests/
 research/models/vq-vae-kietzmannlab/
+research/models/self-supervised_inpainting/
 data/
 
 # Python cache and compiled files
