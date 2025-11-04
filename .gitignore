@@ -6,6 +6,7 @@ runs/
 tests/
 research/models/vq-vae-kietzmannlab/
 data/
+outputs/
 
 # Python cache and compiled files
 __pycache__/
