@@ -1,10 +1,11 @@
 # Root Hydra config for test/evaluation runs
 defaults:
   - dataset: sun       # Dataset definition used to build the datamodule
-  - test_settings: ood  # Suite-specific settings (iterative, ood, etc.)
+  - test_settings: default   # Suite-specific settings (iterative, ood, etc.)
   - _self_               # Keep local keys (models, tests) active
 
-pythonpath: []           # Optional list of extra paths to add to sys.path for imports
+pythonpath:
+  - research/models/vq-vae-kietzmannlab/src  # Allow importing BetaVAE implementation
 
 # List of models to evaluate. Two supported formats:
 #  1) Backward-compatible: strings
@@ -45,13 +46,18 @@ pythonpath: []           # Optional list of extra paths to add to sys.path for i
 
 models: 
   - name: beta-vae
-    class: external_repo.cnnvae.module:CNNVAE
+    class: vq_vae_kietzmannlab.pytorch_models:BetaVAE
+    init:
+      in_channels: 3      # SUN is RGB
+      image_size: 128     # matches sun_resize
+      latent_size: 32     # adjust if your checkpoint differs
+    beta: 1.0             # override if checkpoint used a different beta
     checkpoint:
-      path: ./weights/cnnvae.ckpt
-      format: ckpt           # auto|ckpt|pth (auto tries best guess)
-      # state_dict_key: state_dict
-      # strip_prefixes: ["model.", "module."]
-      # strict: false
+      path: research/models/vq-vae-kietzmannlab/models_laion_betavae_advanced/epoch=5172-step=36211.ckpt
+      format: ckpt
+      state_dict_key: state_dict
+      strip_prefixes: ["network"]  # lightning module wrapped the network
+      strict: false
 
 tests: [ood]                # Which tests to run (e.g., [iterative, ood])
-output_dir: ./analytics  # Ignored if using Hydra's run dir; used by legacy paths
+output_dir: ./analytics/sun  # Ignored if using Hydra's run dir; used by legacy paths
