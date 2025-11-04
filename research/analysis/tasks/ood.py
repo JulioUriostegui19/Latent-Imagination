@@ -30,25 +30,38 @@ def plot_reconstruction_timeline(
 ):
     """Plot reconstructions across a subset of iterations for a single example."""
     save_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    def _to_img(arr: torch.Tensor):
+        x = torch.clamp((arr.detach().cpu() + 1.0) / 2.0, 0.0, 1.0)
+        if x.ndim == 3:
+            # Expect CxHxW
+            if x.shape[0] == 1:
+                return x.squeeze(0).numpy(), "gray"
+            elif x.shape[0] == 3:
+                return x.permute(1, 2, 0).numpy(), None
+        # Fallback: squeeze to 2D if possible
+        if x.ndim == 2:
+            return x.numpy(), "gray"
+        return x.squeeze().numpy(), "gray"
     steps = len(recons)
     indices = np.linspace(0, steps - 1, num_steps_to_show, dtype=int)
     cols = num_steps_to_show + 1 + 1  # corrupted + iterates + target
     fig, axes = plt.subplots(1, cols, figsize=(2.5 * cols, 3))
 
     axes = np.atleast_1d(axes)
-    img_corr = torch.clamp((x_corr.squeeze().cpu() + 1.0) / 2.0, 0.0, 1.0)
-    axes[0].imshow(img_corr, cmap="gray", vmin=0, vmax=1)
+    img_corr, cmap = _to_img(x_corr)
+    axes[0].imshow(img_corr, cmap=cmap, vmin=0, vmax=1)
     axes[0].set_title("corrupted")
     axes[0].axis("off")
 
     for idx, step in enumerate(indices):
-        img = torch.clamp((recons[step].squeeze().cpu() + 1.0) / 2.0, 0.0, 1.0)
-        axes[idx + 1].imshow(img, cmap="gray", vmin=0, vmax=1)
+        img, cmap = _to_img(recons[step])
+        axes[idx + 1].imshow(img, cmap=cmap, vmin=0, vmax=1)
         axes[idx + 1].set_title(f"iter {step}")
         axes[idx + 1].axis("off")
 
-    img_true = torch.clamp((x_true.squeeze().cpu() + 1.0) / 2.0, 0.0, 1.0)
-    axes[-1].imshow(img_true, cmap="gray", vmin=0, vmax=1)
+    img_true, cmap = _to_img(x_true)
+    axes[-1].imshow(img_true, cmap=cmap, vmin=0, vmax=1)
     axes[-1].set_title("target")
     axes[-1].axis("off")
 

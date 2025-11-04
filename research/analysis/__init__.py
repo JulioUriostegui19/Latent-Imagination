@@ -2,7 +2,7 @@
 
 Refactored into modular components:
 - Common helpers in `research.analysis.common`
-- Task-specific tests under `research.analysis.tests.*`
+- Task-specific tasks under `research.analysis.tasks.*`
 - Registry/dispatcher in `infra.pipelines.test_engine`
 """
 
@@ -14,12 +14,12 @@ from research.analysis.common import (
     ModelSpec,
     recon_mse,
 )
-from research.analysis.tests.iterative import (
+from research.analysis.tasks.iterative import (
     plot_iterative_curves,
     plot_latent_evolution,
     run_iterative_inference_test,
 )
-from research.analysis.tests.ood import (
+from research.analysis.tasks.ood import (
     plot_ood_accuracy_bars,
     plot_reconstruction_timeline,
     run_ood_test,

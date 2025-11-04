@@ -72,19 +72,30 @@ def plot_latent_evolution(
     if num_samples == 1:
         axes = np.expand_dims(axes, 0)
 
+    def _to_img(arr: torch.Tensor):
+        x = torch.clamp((arr.detach().cpu() + 1.0) / 2.0, 0.0, 1.0)
+        if x.ndim == 3:
+            if x.shape[0] == 1:
+                return x.squeeze(0).numpy(), "gray"
+            if x.shape[0] == 3:
+                return x.permute(1, 2, 0).numpy(), None
+        if x.ndim == 2:
+            return x.numpy(), "gray"
+        return x.squeeze().numpy(), "gray"
+
     for i in range(num_samples):
         for col, step in enumerate(step_indices):
             z = z_traj[step, i].unsqueeze(0).to(device)
             with torch.no_grad():
                 recon = decoder(z).cpu()
-            img = torch.clamp((recon[0] + 1.0) / 2.0, 0.0, 1.0)
-            axes[i, col].imshow(img.squeeze(), cmap="gray", vmin=0, vmax=1)
+            img, cmap = _to_img(recon[0])
+            axes[i, col].imshow(img, cmap=cmap, vmin=0, vmax=1)
             axes[i, col].axis("off")
             if i == 0:
                 axes[i, col].set_title(f"iter {step}")
         if x_true is not None:
-            img = torch.clamp((x_true[i].cpu() + 1.0) / 2.0, 0.0, 1.0)
-            axes[i, -1].imshow(img.squeeze(), cmap="gray", vmin=0, vmax=1)
+            img, cmap = _to_img(x_true[i])
+            axes[i, -1].imshow(img, cmap=cmap, vmin=0, vmax=1)
             axes[i, -1].axis("off")
             if i == 0:
                 axes[i, -1].set_title("target")
