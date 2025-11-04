@@ -7,6 +7,7 @@ tests/
 research/models/vq-vae-kietzmannlab/
 data/
 outputs/
+../research/models/self-supervised_inpainting/
 
 # Python cache and compiled files
 __pycache__/
