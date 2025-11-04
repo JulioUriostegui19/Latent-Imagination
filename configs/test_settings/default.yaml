@@ -15,11 +15,11 @@ ood:
     identity: {}          # No change (baseline)
     gaussian_blur:        # Apply gaussian blur
       kernel_size: 5      # Odd kernel size
-      sigma: 2.0          # Blur sigma
+      sigma: 6.0          # Blur sigma
     white_noise:          # Additive Gaussian noise
       sigma: 0.6
     salt_pepper:          # Salt & pepper noise
-      prob: 0.4
+      prob: 0.6
     cutout:               # Square patch masking
-      size: 8             # Side length of the square to mask
-      mode: center        # 'center' or 'random'
+      size: 128             # Side length of the square to mask
+      mode: random        # 'center' or 'random'

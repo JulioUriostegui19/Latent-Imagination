@@ -49,9 +49,9 @@ models:
     class: vq_vae_kietzmannlab.pytorch_models:BetaVAE
     init:
       in_channels: 3      # SUN is RGB
-      image_size: 128     # matches sun_resize
-      latent_size: 32     # adjust if your checkpoint differs
-    beta: 1.0             # override if checkpoint used a different beta
+      image_size: 256     # matches sun_resize
+      latent_size: 2048     # adjust if your checkpoint differs
+    beta: 10.0             # override if checkpoint used a different beta
     checkpoint:
       path: research/models/vq-vae-kietzmannlab/models_laion_betavae_advanced/epoch=5172-step=36211.ckpt
       format: ckpt
