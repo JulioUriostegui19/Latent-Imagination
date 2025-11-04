@@ -8,3 +8,4 @@ val_split: 0.1              # Fraction for validation split (train/val)
 sun_resize: 128             # Resize shorter side to this square size
 sun_to_grayscale: false     # Convert to grayscale (true) or keep RGB (false)
 split_seed: 42              # RNG seed for reproducible split
+sun_local_dir: /scratch/juriostegui/sun397-subset  # Optional local SUN397 subset/full (expects train/ and test/)
