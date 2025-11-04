@@ -3,6 +3,9 @@
 .claude
 docs/
 runs/
+tests/
+research/models/vq-vae-kietzmannlab/
+data/
 
 # Python cache and compiled files
 __pycache__/
