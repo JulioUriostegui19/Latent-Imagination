@@ -12,6 +12,8 @@ Backwards compatible: the old `models=[name:path]` or `models=[path]` still work
 """
 
 import sys, os
+import shutil
+from datetime import datetime
 import importlib
 from typing import Any, Optional
 from pathlib import Path
@@ -28,6 +30,7 @@ import hydra  # Hydra framework for configuration management
 import torch  # PyTorch for deep learning operations
 from hydra.utils import to_absolute_path  # Utility to convert relative paths to absolute
 from omegaconf import DictConfig, OmegaConf  # OmegaConf for configuration handling
+from hydra.core.hydra_config import HydraConfig
 
 from research.analysis import (
     ModelSpec,
@@ -523,16 +526,24 @@ def main(cfg: DictConfig):
 
     val_loader = _prepare_dataloader(cfg.dataset)
 
-    # Use Hydra's run directory for outputs (e.g., outputs/YYYY-MM-DD/HH-MM-SS)
-    output_root = Path.cwd()
-    tests_root = output_root / "tests"
-    tests_root.mkdir(parents=True, exist_ok=True)
+    # Build root: tests/<config_name>/<timestamp>
+    try:
+        cfg_name = HydraConfig.get().job.config_name or "default"
+    except Exception:
+        cfg_name = "default"
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    config_root = (REPO_ROOT / "tests" / cfg_name).resolve()
+    run_root = (config_root / timestamp).resolve()
+    run_root.mkdir(parents=True, exist_ok=True)
 
     metrics: Dict[str, Dict[str, object]] = {}
+    latest_targets: Dict[str, Path] = {}
 
     # Execute each requested test suite
     for test_name in cfg.tests:
-        test_dir = tests_root / test_name
+        # tests/<test_name>/<config_name>/<timestamp>
+        test_dir = (REPO_ROOT / "tests" / test_name / cfg_name / timestamp).resolve()
         test_dir.mkdir(exist_ok=True, parents=True)
 
         # Build test-specific config
@@ -570,11 +581,31 @@ def main(cfg: DictConfig):
             output_dir=test_dir,
         )
 
-    # Save comprehensive metrics summary
-    summary_path = tests_root / "metrics_summary.yaml"
+        # Update per-test latest alias
+        latest_test_dir = (REPO_ROOT / "tests" / test_name / cfg_name / "latest").resolve()
+        try:
+            if latest_test_dir.exists():
+                shutil.rmtree(latest_test_dir)
+            shutil.copytree(test_dir, latest_test_dir)
+        except Exception as e:
+            print(f"[!] Warning: failed to update latest for test '{test_name}': {e}")
+        latest_targets[test_name] = latest_test_dir
+
+    # Save comprehensive metrics summary at tests/<config_name>/<timestamp>
+    summary_path = run_root / "metrics_summary.yaml"
     with open(summary_path, "w", encoding="utf-8") as fp:
         fp.write(OmegaConf.to_yaml(metrics))
     print(f"[✓] Evaluation complete. Summary written to {summary_path}")
+
+    # Update config-level latest alias: tests/<config_name>/latest
+    latest_config_dir = (REPO_ROOT / "tests" / cfg_name / "latest").resolve()
+    try:
+        if latest_config_dir.exists():
+            shutil.rmtree(latest_config_dir)
+        shutil.copytree(run_root, latest_config_dir)
+        print(f"[✓] Updated latest run at {latest_config_dir}")
+    except Exception as e:
+        print(f"[!] Warning: failed to update config-level 'latest': {e}")
 
 
 if __name__ == "__main__":

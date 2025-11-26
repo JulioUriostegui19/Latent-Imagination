@@ -1,6 +1,6 @@
 # Core Deep Learning Dependencies
 torch>=2.0.0
-torchvision>=0.15.0
+torchvision==0.15.0
 pytorch-lightning>=2.0.0
 tensorboard>=2.9
 
@@ -15,6 +15,8 @@ numpy>=1.21.0
 matplotlib>=3.5.0
 torchinfo>=1.8.0
 torchviz>=0.0.3
-#hiddenlayer>=0.3
 # Optional: For Jupyter notebook analytics (uncomment if needed)
 # opencv-python>=4.5.0
+
+# Hugging Face datasets for streaming SUN397
+datasets>=2.14.0
